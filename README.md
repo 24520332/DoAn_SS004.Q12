@@ -1,4 +1,4 @@
-# [TRÒ CHOI TETRIS /DỰ ÁN CỦA NHÓM : TREEZE]
+# [TRÒ CHƠI TETRIS /DỰ ÁN CỦA NHÓM : TREEZE]
 
 
 > **Đồ án môn học:** Kỹ Năng Nghề Nghiệp  
