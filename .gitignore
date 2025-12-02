@@ -1,3 +1,16 @@
+# Bỏ qua thư mục cấu hình riêng của VS Code
+.vscode/
+
+# Bỏ qua các file chạy, file rác (.exe, .o, .out)
+*.exe
+*.o
+*.out
+*.debug
+
+# Bỏ qua thư mục build (nếu có)
+build/
+bin/
+obj/
 # Prerequisites
 *.d
 
