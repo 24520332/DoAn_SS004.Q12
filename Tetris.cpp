@@ -42,6 +42,27 @@ char blocks[][4][4] = {
          {' ',' ',' ',' '}}
 };
 
+// Wall kick data cho các khối J, L, S, T, Z
+int wallKickCW_Normal[4][5][2] = {
+    // 0 -> 1
+    {{0,0}, {-1,0}, {-1,1}, {0,-2}, {-1,-2}},
+    // 1 -> 2
+    {{0,0}, {1,0}, {1,-1}, {0,2}, {1,2}},
+    // 2 -> 3
+    {{0,0}, {1,0}, {1,1}, {0,-2}, {1,-2}},
+    // 3 -> 0
+    {{0,0}, {-1,0}, {-1,-1}, {0,2}, {-1,2}}
+};
+
+// Wall kick data đặc biệt cho khối I
+int wallKickCW_I[4][5][2] = {
+    {{0,0}, {-2,0}, {1,0}, {-2,-1}, {1,2}},
+    {{0,0}, {-1,0}, {2,0}, {-1,2}, {2,-1}},
+    {{0,0}, {2,0}, {-1,0}, {2,1}, {-1,-2}},
+    {{0,0}, {1,0}, {-2,0}, {1,-2}, {-2,1}}
+};
+
+
 int rotation = 0;  // 0, 1, 2, 3 cho 4 hướng xoay
 
 int x=4,y=0,b=1;
@@ -58,8 +79,9 @@ void boardDelBlock(){
 void block2Board(){
     for (int i = 0 ; i < 4 ; i++)
         for (int j = 0 ; j < 4 ; j++)
-            if (blocks[b][i][j] != ' ' )
+            if (blocks[b][i][j] != ' ')
                 board[y+i][x+j] = blocks[b][i][j];
+
 }
 void initBoard(){
     for (int i = 0 ; i < H ; i++)
@@ -87,18 +109,52 @@ bool canMove(int dx, int dy){
 }
 
 void rotateBlock() {
-    if(b == 1) return; // Không xoay khối O
+    if (b == 1) return; // O block không xoay
 
     char temp[4][4] = {};
 
-    // Xoay theo chiều kim đồng hồ
+    // Xoay chiều kim đồng hồ trong bộ nhớ
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             temp[j][3 - i] = blocks[b][i][j];
 
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-            blocks[b][i][j] = temp[i][j];
+    // Chọn bảng wall kick
+    int (*kick)[5][2];
+    kick = (b == 0) ? wallKickCW_I : wallKickCW_Normal;
+
+    // Thử từng wall kick
+    for (int k = 0; k < 5; k++) {
+        int dx = kick[rotation][k][0];
+        int dy = kick[rotation][k][1];
+
+        bool valid = true;
+
+        for (int i = 0; i < 4 && valid; i++)
+            for (int j = 0; j < 4; j++)
+                if (temp[i][j] != ' ') {
+                    int tx = x + j + dx;
+                    int ty = y + i + dy;
+
+                    if (tx < 1 || tx >= W-1 ||
+                        ty >= H-1 ||
+                        board[ty][tx] != ' ') {
+                        valid = false;
+                        break;
+                    }
+                }
+
+        if (valid) {
+            x += dx;
+            y += dy;
+
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < 4; j++)
+                    blocks[b][i][j] = temp[i][j];
+
+            rotation = (rotation + 1) % 4;
+            return;
+        }
+    }
 }
 
 void removeLine(){
