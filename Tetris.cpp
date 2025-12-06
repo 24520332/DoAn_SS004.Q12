@@ -10,67 +10,39 @@ char blocks[][4][4] = {
          {' ','I',' ',' '},
          {' ','I',' ',' '},
          {' ','I',' ',' '}},
-        {{' ','I',' ',' '},
-         {' ','I',' ',' '},
-         {' ','I',' ',' '},
-         {' ','I',' ',' '}},
+
         {{' ',' ',' ',' '},
          {' ','O','O',' '},
          {' ','O','O',' '},
-         {' ',' ',' ',' '}},
-        {{' ',' ',' ',' '},
-         {' ','O','O',' '},
-         {' ','O','O',' '},
-         {' ',' ',' ',' '}},
-        {{' ',' ',' ',' '},
-         {' ','O','O',' '},
-         {' ','O','O',' '},
-         {' ',' ',' ',' '}},
-        {{' ',' ',' ',' '},
-         {' ','O','O',' '},
-         {' ','O','O',' '},
-         {' ',' ',' ',' '}},
-        {{' ',' ',' ',' '},
-         {' ','O','O',' '},
-         {' ','O','O',' '},
-         {' ',' ',' ',' '}},
-        {{' ',' ',' ',' '},
-         {' ','O','O',' '},
-         {' ','O','O',' '},
-         {' ',' ',' ',' '}},
-        {{' ',' ',' ',' '},
-         {' ','O','O',' '},
-         {' ','O','O',' '},
-         {' ',' ',' ',' '}},
-        {{' ',' ',' ',' '},
-         {'I','I','I','I'},
-         {' ',' ',' ',' '},
-         {' ',' ',' ',' '}},
-        {{' ',' ',' ',' '},
-         {' ','O','O',' '},
-         {' ','O','O',' '},
-         {' ',' ',' ',' '}},
+         {' ',' ',' ',' '}},  
+
         {{' ',' ',' ',' '},
          {' ','T',' ',' '},
          {'T','T','T',' '},
          {' ',' ',' ',' '}},
+
         {{' ',' ',' ',' '},
          {' ','S','S',' '},
          {'S','S',' ',' '},
          {' ',' ',' ',' '}},
+
         {{' ',' ',' ',' '},
          {'Z','Z',' ',' '},
          {' ','Z','Z',' '},
          {' ',' ',' ',' '}},
+
         {{' ',' ',' ',' '},
          {'J',' ',' ',' '},
          {'J','J','J',' '},
          {' ',' ',' ',' '}},
+
         {{' ',' ',' ',' '},
          {' ',' ','L',' '},
          {'L','L','L',' '},
          {' ',' ',' ',' '}}
 };
+
+int rotation = 0;  // 0, 1, 2, 3 cho 4 hướng xoay
 
 int x=4,y=0,b=1;
 void gotoxy(int x, int y) {
@@ -101,6 +73,7 @@ void draw(){
         for (int j = 0 ; j < W ; j++)
             cout<<board[i][j];
 }
+
 bool canMove(int dx, int dy){
     for (int i = 0 ; i < 4 ; i++)
         for (int j = 0 ; j < 4 ; j++)
@@ -112,30 +85,51 @@ bool canMove(int dx, int dy){
             }
     return true;
 }
+
+void rotateBlock() {
+    if(b == 1) return; // Không xoay khối O
+
+    char temp[4][4] = {};
+
+    // Xoay theo chiều kim đồng hồ
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            temp[j][3 - i] = blocks[b][i][j];
+
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            blocks[b][i][j] = temp[i][j];
+}
+
 void removeLine(){
-   
+
 }
 
 int main()
 {
     srand(time(0));
     b = rand() % 7;
+    rotation = 0; // Khởi tạo rotation
     system("cls");
     initBoard();
-    while (1){
+    
+    while (true){
         boardDelBlock();
         if (kbhit()){
             char c = getch();
             if (c=='a' && canMove(-1,0)) x--;
-            if (c=='d' && canMove(1,0) ) x++;
-            if (c=='x' && canMove(0,1))  y++;
+            if (c=='d' && canMove(1,0)) x++;
+            if (c=='s' && canMove(0,1)) y++; // Sửa 'x' thành 's' cho quen
+            if (c=='w') rotateBlock();      // 'w' để xoay CW
             if (c=='q') break;
         }
         if (canMove(0,1)) y++;
         else {
             block2Board();
             removeLine();
-            x = 5; y = 0; b = rand() % 7;
+            x = 5; y = 0; 
+            b = rand() % 7;
+            rotation = 0; // Reset rotation cho khối mới
         }
         block2Board();
         draw();
