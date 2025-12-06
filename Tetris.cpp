@@ -5,7 +5,7 @@ using namespace std;
 #define H 20
 #define W 15
 char board[H][W] = {} ;
-char blocks[][4][4] = {
+char blockTemplates[][4][4] = {
         {{' ','I',' ',' '},
          {' ','I',' ',' '},
          {' ','I',' ',' '},
@@ -62,6 +62,9 @@ int wallKickCW_I[4][5][2] = {
     {{0,0}, {1,0}, {-2,0}, {1,-2}, {-2,1}}
 };
 
+char currentBlock[4][4]; // Block đang rơi
+
+
 
 int rotation = 0;  // 0, 1, 2, 3 cho 4 hướng xoay
 
@@ -70,17 +73,38 @@ void gotoxy(int x, int y) {
     COORD c = {x, y};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
-void boardDelBlock(){
-    for (int i = 0 ; i < 4 ; i++)
-        for (int j = 0 ; j < 4 ; j++)
-            if (blocks[b][i][j] != ' ' && y+j < H)
-                board[y+i][x+j] = ' ';
+
+void spawnBlock() {
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            currentBlock[i][j] = blockTemplates[b][i][j];
 }
+
+void boardDelBlock(){
+    for (int i = 0 ; i < 4 ; i++){
+        for (int j = 0 ; j < 4 ; j++){
+            if (currentBlock[i][j] != ' ') {
+                int tx = x + j;
+                int ty = y + i;
+                // kiểm tra trong biên trước khi gán
+                if (ty >= 0 && ty < H && tx >= 0 && tx < W)
+                    board[ty][tx] = ' ';
+            }
+        }
+    }
+}
+
 void block2Board(){
-    for (int i = 0 ; i < 4 ; i++)
-        for (int j = 0 ; j < 4 ; j++)
-            if (blocks[b][i][j] != ' ')
-                board[y+i][x+j] = blocks[b][i][j];
+    for (int i = 0 ; i < 4 ; i++){
+        for (int j = 0 ; j < 4 ; j++){
+            if (currentBlock[i][j] != ' ') {
+                int tx = x + j;
+                int ty = y + i;
+                if (ty >= 0 && ty < H && tx >= 0 && tx < W)
+                    board[ty][tx] = currentBlock[i][j];
+            }
+        }
+    }
 
 }
 void initBoard(){
@@ -97,13 +121,16 @@ void draw(){
 }
 
 bool canMove(int dx, int dy){
-    for (int i = 0 ; i < 4 ; i++)
-        for (int j = 0 ; j < 4 ; j++)
-            if (blocks[b][i][j] != ' '){
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            if (currentBlock[i][j] != ' ') {
                 int tx = x + j + dx;
                 int ty = y + i + dy;
-                if ( tx<1 || tx >= W-1 || ty >= H-1) return false;
-                if ( board[ty][tx] != ' ') return false;
+
+                if (tx < 1 || tx >= W - 1 || ty >= H - 1)
+                    return false;
+                if (board[ty][tx] != ' ')
+                    return false;
             }
     return true;
 }
@@ -116,7 +143,7 @@ void rotateBlock() {
     // Xoay chiều kim đồng hồ trong bộ nhớ
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
-            temp[j][3 - i] = blocks[b][i][j];
+            temp[j][3 - i] = currentBlock[i][j];
 
     // Chọn bảng wall kick
     int (*kick)[5][2];
@@ -149,7 +176,7 @@ void rotateBlock() {
 
             for (int i = 0; i < 4; i++)
                 for (int j = 0; j < 4; j++)
-                    blocks[b][i][j] = temp[i][j];
+                    currentBlock[i][j] = temp[i][j];
 
             rotation = (rotation + 1) % 4;
             return;
@@ -165,6 +192,8 @@ int main()
 {
     srand(time(0));
     b = rand() % 7;
+    spawnBlock();
+    
     rotation = 0; // Khởi tạo rotation
     system("cls");
     initBoard();
@@ -186,6 +215,8 @@ int main()
             x = 5; y = 0; 
             b = rand() % 7;
             rotation = 0; // Reset rotation cho khối mới
+
+            spawnBlock();
         }
         block2Board();
         draw();
