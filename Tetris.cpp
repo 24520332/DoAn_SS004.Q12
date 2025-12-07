@@ -14,7 +14,7 @@ char blockTemplates[][4][4] = {
         {{' ',' ',' ',' '},
          {' ','O','O',' '},
          {' ','O','O',' '},
-         {' ',' ',' ',' '}},  
+         {' ',' ',' ',' '}},
 
         {{' ',' ',' ',' '},
          {' ','T',' ',' '},
@@ -67,6 +67,9 @@ char currentBlock[4][4]; // Block đang rơi
 
 
 int rotation = 0;  // 0, 1, 2, 3 cho 4 hướng xoay
+//Thêm biến toàn cục cho dòng và level
+int linesCleared = 0;
+int level = 1;
 
 int x=4,y=0,b=1;
 void gotoxy(int x, int y) {
@@ -118,6 +121,9 @@ void draw(){
     for (int i = 0 ; i < H ; i++, cout<<endl)
         for (int j = 0 ; j < W ; j++)
             cout<<board[i][j];
+
+    //Hiện level và dòng đã cleard dưới bảng
+    cout << "Level: " << level << " | Lines: " << linesCleared << endl;
 }
 
 bool canMove(int dx, int dy){
@@ -185,19 +191,50 @@ void rotateBlock() {
 }
 
 void removeLine(){
+    int cleared = 0; //số dòng xóa
+    int dest = H - 2; //bắt đầu ghi từ hàng H-2
+    for (int src = H - 2; src >= 0; src--) {
+        bool full = true;
+        //Kiểm tra hàng src có đầy không (cột 1 đến W-2)
+        for (int j = 1; j < W - 1; j++) {
+            if (board[src][j] == ' ') {
+                full = false;
+                break;
+            }
+        }
 
+        if (!full) {
+            //Sao chép hàng src vào dest
+            for (int j = 1; j < W-1; j++) {
+                board[dest][j] = board[src][j];
+            }
+            dest--;
+        } else {
+            cleared++; //Đếm dòng đầy
+        }
+    }
+
+    //Điền vào hàng trên cùng (từ 0 đến dest) bằng ' '
+    for (int i = 0; i <= dest; i++) {
+        for (int j = 1; j < W-1; j++) {
+            board[i][j] = ' ';
+        }
+    }
+
+    //Cập nhập số dòng đã xóa
+    linesCleared += cleared;
 }
 
 int main()
 {
-    srand(time(0));
+    //srand(time(0));
     b = rand() % 7;
     spawnBlock();
-    
+
     rotation = 0; // Khởi tạo rotation
     system("cls");
     initBoard();
-    
+
     while (true){
         boardDelBlock();
         if (kbhit()){
@@ -212,7 +249,8 @@ int main()
         else {
             block2Board();
             removeLine();
-            x = 5; y = 0; 
+            level = linesCleared/10+1; //Cập nhập cứ 10 dòng clear thì tăng 1 level
+            x = 5; y = 0;
             b = rand() % 7;
             rotation = 0; // Reset rotation cho khối mới
 
