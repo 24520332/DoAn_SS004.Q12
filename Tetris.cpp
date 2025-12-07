@@ -258,7 +258,8 @@ int main()
         }
         block2Board();
         draw();
-        Sleep(200);
+        int speed = max(50, 200 - (level - 1) * 20); //Giảm 20 ms cho mỗi 1 lần tăng level
+        Sleep(speed);
     }
     return 0;
 }
