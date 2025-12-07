@@ -1,6 +1,7 @@
-#include <iostream>
+﻿#include <iostream>
 #include <conio.h>
 #include <windows.h>
+#include <ctime> //(VuQuan) Sử dụng srand(time(0))
 using namespace std;
 #define H 20
 #define W 15
@@ -73,6 +74,7 @@ char blocks[][4][4] = {
 };
 
 int x=4,y=0,b=1;
+int FallSpeed = 200; //(VuQuan) Thêm biến tốc độ rơi
 void gotoxy(int x, int y) {
     COORD c = {x, y};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
@@ -113,7 +115,22 @@ bool canMove(int dx, int dy){
     return true;
 }
 void removeLine(){
-   
+
+    //(VuQuan) Tăng tốc độ khi có dòng bị xóa
+    if (linesCleared > 0) {
+        const int SPEED_INCREMENT = 10; //(VuQuan) Tăng 10ms cho mỗi dòng bị xóa
+        const int MIN_SPEED = 50; //(VuQuan) Giới hạn tối đa 50ms
+
+        if (FallSpeed > MIN_SPEED) {
+            //(VuQuan) Tăng tốc dựa trên số lượng dòng bị xóa cùng lúc
+            FallSpeed -= (SPEED_INCREMENT * linesCleared);
+
+            //(VuQuan) Đảm bảo tốc độ không vượt quá giới hạn tối thiểu
+            if (FallSpeed < MIN_SPEED) {
+                FallSpeed = MIN_SPEED;
+            }
+        }
+    }
 }
 
 int main()
@@ -139,7 +156,7 @@ int main()
         }
         block2Board();
         draw();
-        Sleep(200);
+        Sleep(FallSpeed); //(VuQuan) Đổi số cố định 200 thành biến FallSpeed để tăng tốc độ mỗi khi xóa dòng 
     }
     return 0;
 }
