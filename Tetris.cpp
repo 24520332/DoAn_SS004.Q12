@@ -11,7 +11,6 @@ char blockTemplates[][4][4] = {
          {' ','I',' ',' '},
          {' ','I',' ',' '},
          {' ','I',' ',' '}},
-
         {{' ',' ',' ',' '},
          {' ','O','O',' '},
          {' ','O','O',' '},
@@ -43,36 +42,65 @@ char blockTemplates[][4][4] = {
          {' ',' ',' ',' '}}
 };
 
-// Wall kick data cho các khối J, L, S, T, Z
-int wallKickCW_Normal[4][5][2] = {
-    // 0 -> 1
-    {{0,0}, {-1,0}, {-1,1}, {0,-2}, {-1,-2}},
-    // 1 -> 2
-    {{0,0}, {1,0}, {1,-1}, {0,2}, {1,2}},
-    // 2 -> 3
-    {{0,0}, {1,0}, {1,1}, {0,-2}, {1,-2}},
-    // 3 -> 0
-    {{0,0}, {-1,0}, {-1,-1}, {0,2}, {-1,2}}
+// --------------
+// --- Đồ họa ---
+// --------------
+
+// Màu sắc
+enum Color { 
+    red = 12, 
+    green = 10,
+    blue = 9, 
+    yellow = 14, 
+    cyan = 11, 
+    white = 15,
+    purple = 13,
+    orange = 6,
+    gray = 8
+    // Xem thêm tại bảng màu "Windows Console Color Table"
 };
 
-// Wall kick data đặc biệt cho khối I
-int wallKickCW_I[4][5][2] = {
-    {{0,0}, {-2,0}, {1,0}, {-2,-1}, {1,2}},
-    {{0,0}, {-1,0}, {2,0}, {-1,2}, {2,-1}},
-    {{0,0}, {2,0}, {-1,0}, {2,1}, {-1,-2}},
-    {{0,0}, {1,0}, {-2,0}, {1,-2}, {-2,1}}
-};
+// Đổi màu chữ cho console Windows
+void setColor(int color) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
+}
 
-char currentBlock[4][4]; // Block đang rơi
+// Chuyển thành block màu
+char ColorBlock(char c, int color) {
+    setColor(color);
+    return '\xDB';
+}
 
+char blockChar(char c) {
+    switch(c) {
+        case 'I': 
+            return ColorBlock(c, cyan);
+        case 'O': 
+            return ColorBlock(c, yellow);
+        case 'T': 
+            return ColorBlock(c, purple);
+        case 'S': 
+            return ColorBlock(c, green);
+        case 'Z':
+            return ColorBlock(c, red);
+        case 'J': 
+            return ColorBlock(c, blue);
+        case 'L': 
+            return ColorBlock(c, orange);
+        case '#':
+            return ColorBlock(c, gray);
+        default: 
+            return ' ';
+    }
+}
+//---------------
 
-
-int rotation = 0;  // 0, 1, 2, 3 cho 4 hướng xoay
+int x=4,y=0,b=1; // b is the index of the current block
 
 int x=4,y=0,b=1;
 int FallSpeed = 200; //(VuQuan) Thêm biến tốc độ rơi
 void gotoxy(int x, int y) {
-    COORD c = {x, y};
+    COORD c = {(SHORT)x, (SHORT)y};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
 
@@ -115,11 +143,16 @@ void initBoard(){
             if ((i==H-1) || (j==0) || (j == W-1)) board[i][j] = '#';
             else board[i][j] = ' ';
 }
+
 void draw(){
     gotoxy(0,0);
     for (int i = 0 ; i < H ; i++, cout<<endl)
         for (int j = 0 ; j < W ; j++)
-            cout<<board[i][j];
+        {
+            // cout<< board[i][j] << board[i][j];
+            cout << blockChar(board[i][j]) << blockChar(board[i][j]);
+            setColor(white);
+        }
 }
 
 bool canMove(int dx, int dy){
@@ -205,6 +238,7 @@ void removeLine(){
     }
 }
 
+
 int main()
 {
     srand(time(0));
@@ -217,14 +251,17 @@ int main()
     
     while (true){
         boardDelBlock();
-        if (kbhit()){
-            char c = getch();
-            if (c=='a' && canMove(-1,0)) x--;
-            if (c=='d' && canMove(1,0)) x++;
-            if (c=='s' && canMove(0,1)) y++; // Sửa 'x' thành 's' cho quen
-            if (c=='w') rotateBlock();      // 'w' để xoay CW
-            if (c=='q') break;
+        if (kbhit()){ // kbhit() checks if a key is pressed
+            int c = getch();
+            if (c == 0 || c == 224) {
+                c = getch(); 
+            }
+            if (c==75 && canMove(-1,0)) x--;    // Left arrow key
+            if (c==77 && canMove(1,0)) x++;     // Right arrow
+            if (c==80 && canMove(0,1))  y++;    // Down arrow
+            // if (c==72) rotate_block();                   // Up arrow
         }
+
         if (canMove(0,1)) y++;
         else {
             block2Board();
