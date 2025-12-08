@@ -7,7 +7,7 @@ using namespace std;
 #define H 20
 #define W 15
 char board[H][W] = {} ;
-char blocks[][4][4] = {
+char blockTemplates[][4][4] = {
         {{' ','I',' ',' '},
          {' ','I',' ',' '},
          {' ','I',' ',' '},
@@ -15,23 +15,28 @@ char blocks[][4][4] = {
         {{' ',' ',' ',' '},
          {' ','O','O',' '},
          {' ','O','O',' '},
-         {' ',' ',' ',' '}},
+         {' ',' ',' ',' '}},  
+
         {{' ',' ',' ',' '},
          {' ','T',' ',' '},
          {'T','T','T',' '},
          {' ',' ',' ',' '}},
+
         {{' ',' ',' ',' '},
          {' ','S','S',' '},
          {'S','S',' ',' '},
          {' ',' ',' ',' '}},
+
         {{' ',' ',' ',' '},
          {'Z','Z',' ',' '},
          {' ','Z','Z',' '},
          {' ',' ',' ',' '}},
+
         {{' ',' ',' ',' '},
          {'J',' ',' ',' '},
          {'J','J','J',' '},
          {' ',' ',' ',' '}},
+
         {{' ',' ',' ',' '},
          {' ',' ','L',' '},
          {'L','L','L',' '},
@@ -97,17 +102,39 @@ void gotoxy(int x, int y) {
     COORD c = {(SHORT)x, (SHORT)y};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
-void boardDelBlock(){
-    for (int i = 0 ; i < 4 ; i++)
-        for (int j = 0 ; j < 4 ; j++)
-            if (blocks[b][i][j] != ' ' && y+j < H)
-                board[y+i][x+j] = ' ';
+
+void spawnBlock() {
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            currentBlock[i][j] = blockTemplates[b][i][j];
 }
+
+void boardDelBlock(){
+    for (int i = 0 ; i < 4 ; i++){
+        for (int j = 0 ; j < 4 ; j++){
+            if (currentBlock[i][j] != ' ') {
+                int tx = x + j;
+                int ty = y + i;
+                // kiểm tra trong biên trước khi gán
+                if (ty >= 0 && ty < H && tx >= 0 && tx < W)
+                    board[ty][tx] = ' ';
+            }
+        }
+    }
+}
+
 void block2Board(){
-    for (int i = 0 ; i < 4 ; i++)
-        for (int j = 0 ; j < 4 ; j++)
-            if (blocks[b][i][j] != ' ' )
-                board[y+i][x+j] = blocks[b][i][j];
+    for (int i = 0 ; i < 4 ; i++){
+        for (int j = 0 ; j < 4 ; j++){
+            if (currentBlock[i][j] != ' ') {
+                int tx = x + j;
+                int ty = y + i;
+                if (ty >= 0 && ty < H && tx >= 0 && tx < W)
+                    board[ty][tx] = currentBlock[i][j];
+            }
+        }
+    }
+
 }
 void initBoard(){
     for (int i = 0 ; i < H ; i++)
@@ -128,18 +155,71 @@ void draw(){
 }
 
 bool canMove(int dx, int dy){
-    for (int i = 0 ; i < 4 ; i++)
-        for (int j = 0 ; j < 4 ; j++)
-            if (blocks[b][i][j] != ' '){
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            if (currentBlock[i][j] != ' ') {
                 int tx = x + j + dx;
                 int ty = y + i + dy;
-                if ( tx<1 || tx >= W-1 || ty >= H-1) return false;
-                if ( board[ty][tx] != ' ') return false;
+
+                if (tx < 1 || tx >= W - 1 || ty >= H - 1)
+                    return false;
+                if (board[ty][tx] != ' ')
+                    return false;
             }
     return true;
 }
+
+void rotateBlock() {
+    if (b == 1) return; // O block không xoay
+
+    char temp[4][4] = {};
+
+    // Xoay chiều kim đồng hồ trong bộ nhớ
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            temp[j][3 - i] = currentBlock[i][j];
+
+    // Chọn bảng wall kick
+    int (*kick)[5][2];
+    kick = (b == 0) ? wallKickCW_I : wallKickCW_Normal;
+
+    // Thử từng wall kick
+    for (int k = 0; k < 5; k++) {
+        int dx = kick[rotation][k][0];
+        int dy = kick[rotation][k][1];
+
+        bool valid = true;
+
+        for (int i = 0; i < 4 && valid; i++)
+            for (int j = 0; j < 4; j++)
+                if (temp[i][j] != ' ') {
+                    int tx = x + j + dx;
+                    int ty = y + i + dy;
+
+                    if (tx < 1 || tx >= W-1 ||
+                        ty >= H-1 ||
+                        board[ty][tx] != ' ') {
+                        valid = false;
+                        break;
+                    }
+                }
+
+        if (valid) {
+            x += dx;
+            y += dy;
+
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < 4; j++)
+                    currentBlock[i][j] = temp[i][j];
+
+            rotation = (rotation + 1) % 4;
+            return;
+        }
+    }
+}
+
 void removeLine(){
-   
+
 }
 
 
@@ -147,9 +227,13 @@ int main()
 {
     srand(time(0));
     b = rand() % 7;
+    spawnBlock();
+    
+    rotation = 0; // Khởi tạo rotation
     system("cls");
     initBoard();
-    while (1){
+    
+    while (true){
         boardDelBlock();
         if (kbhit()){ // kbhit() checks if a key is pressed
             int c = getch();
@@ -166,7 +250,11 @@ int main()
         else {
             block2Board();
             removeLine();
-            x = 5; y = 0; b = rand() % 7;
+            x = 5; y = 0; 
+            b = rand() % 7;
+            rotation = 0; // Reset rotation cho khối mới
+
+            spawnBlock();
         }
         block2Board();
         draw();
