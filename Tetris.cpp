@@ -14,7 +14,7 @@ char blockTemplates[][4][4] = {
         {{' ',' ',' ',' '},
          {' ','O','O',' '},
          {' ','O','O',' '},
-         {' ',' ',' ',' '}},  
+         {' ',' ',' ',' '}},
 
         {{' ',' ',' ',' '},
          {' ','T',' ',' '},
@@ -95,7 +95,10 @@ char blockChar(char c) {
 }
 //---------------
 
-int x=4,y=0,b=1; // b is the index of the current block
+int rotation = 0;  // 0, 1, 2, 3 cho 4 hướng xoay
+//Thêm biến toàn cục cho dòng và level
+int linesCleared = 0;
+int level = 1;
 
 int x=4,y=0,b=1;
 int FallSpeed = 200; //(VuQuan) Thêm biến tốc độ rơi
@@ -148,11 +151,10 @@ void draw(){
     gotoxy(0,0);
     for (int i = 0 ; i < H ; i++, cout<<endl)
         for (int j = 0 ; j < W ; j++)
-        {
-            // cout<< board[i][j] << board[i][j];
-            cout << blockChar(board[i][j]) << blockChar(board[i][j]);
-            setColor(white);
-        }
+            cout<<board[i][j];
+
+    //Hiện level và dòng đã cleard dưới bảng
+    cout << "Level: " << level << " | Lines: " << linesCleared << endl;
 }
 
 bool canMove(int dx, int dy){
@@ -220,35 +222,51 @@ void rotateBlock() {
 }
 
 void removeLine(){
-
-    //(VuQuan) Tăng tốc độ khi có dòng bị xóa
-    if (linesCleared > 0) {
-        const int SPEED_INCREMENT = 10; //(VuQuan) Tăng 10ms cho mỗi dòng bị xóa
-        const int MIN_SPEED = 50; //(VuQuan) Giới hạn tối đa 50ms
-
-        if (FallSpeed > MIN_SPEED) {
-            //(VuQuan) Tăng tốc dựa trên số lượng dòng bị xóa cùng lúc
-            FallSpeed -= (SPEED_INCREMENT * linesCleared);
-
-            //(VuQuan) Đảm bảo tốc độ không vượt quá giới hạn tối thiểu
-            if (FallSpeed < MIN_SPEED) {
-                FallSpeed = MIN_SPEED;
+    int cleared = 0; //số dòng xóa
+    int dest = H - 2; //bắt đầu ghi từ hàng H-2
+    for (int src = H - 2; src >= 0; src--) {
+        bool full = true;
+        //Kiểm tra hàng src có đầy không (cột 1 đến W-2)
+        for (int j = 1; j < W - 1; j++) {
+            if (board[src][j] == ' ') {
+                full = false;
+                break;
             }
         }
+
+        if (!full) {
+            //Sao chép hàng src vào dest
+            for (int j = 1; j < W-1; j++) {
+                board[dest][j] = board[src][j];
+            }
+            dest--;
+        } else {
+            cleared++; //Đếm dòng đầy
+        }
     }
+
+    //Điền vào hàng trên cùng (từ 0 đến dest) bằng ' '
+    for (int i = 0; i <= dest; i++) {
+        for (int j = 1; j < W-1; j++) {
+            board[i][j] = ' ';
+        }
+    }
+
+    //Cập nhập số dòng đã xóa
+    linesCleared += cleared;
 }
 
 
 int main()
 {
-    srand(time(0));
+    //srand(time(0));
     b = rand() % 7;
     spawnBlock();
-    
+
     rotation = 0; // Khởi tạo rotation
     system("cls");
     initBoard();
-    
+
     while (true){
         boardDelBlock();
         if (kbhit()){ // kbhit() checks if a key is pressed
@@ -266,7 +284,8 @@ int main()
         else {
             block2Board();
             removeLine();
-            x = 5; y = 0; 
+            level = linesCleared/10+1; //Cập nhập cứ 10 dòng clear thì tăng 1 level
+            x = 5; y = 0;
             b = rand() % 7;
             rotation = 0; // Reset rotation cho khối mới
 
@@ -274,7 +293,8 @@ int main()
         }
         block2Board();
         draw();
-        Sleep(FallSpeed); //(VuQuan) Đổi số cố định 200 thành biến FallSpeed để tăng tốc độ mỗi khi xóa dòng 
+        int speed = max(50, 200 - (level - 1) * 20); //Giảm 20 ms cho mỗi 1 lần tăng level
+        Sleep(speed);
     }
     return 0;
 }
