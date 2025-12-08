@@ -6,6 +6,7 @@ using namespace std;
 #define H 20
 #define W 15
 char board[H][W] = {} ;
+char currentBlock[4][4] = {};
 char blockTemplates[][4][4] = {
         {{' ','I',' ',' '},
          {' ','I',' ',' '},
@@ -40,6 +41,29 @@ char blockTemplates[][4][4] = {
          {' ',' ','L',' '},
          {'L','L','L',' '},
          {' ',' ',' ',' '}}
+};
+
+int wallKickCW_I[4][5][2] = {
+    // State 0->1
+    {{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}},
+    // State 1->2
+    {{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}},
+    // State 2->3
+    {{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}},
+    // State 3->0
+    {{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}}
+};
+
+// Wall kick data cho các block thông thường (J, L, S, T, Z)
+int wallKickCW_Normal[4][5][2] = {
+    // State 0->1
+    {{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
+    // State 1->2
+    {{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
+    // State 2->3
+    {{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
+    // State 3->0
+    {{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}
 };
 
 // --------------
@@ -151,7 +175,11 @@ void draw(){
     gotoxy(0,0);
     for (int i = 0 ; i < H ; i++, cout<<endl)
         for (int j = 0 ; j < W ; j++)
-            cout<<board[i][j];
+        {
+            cout<<blockChar(board[i][j])<<blockChar(board[i][j]);
+            setColor(white); //Đổi lại màu trắng sau khi in block
+        }
+
 
     //Hiện level và dòng đã cleard dưới bảng
     cout << "Level: " << level << " | Lines: " << linesCleared << endl;
@@ -259,42 +287,68 @@ void removeLine(){
 
 int main()
 {
-    //srand(time(0));
+    srand(time(0));
     b = rand() % 7;
     spawnBlock();
 
-    rotation = 0; // Khởi tạo rotation
+    rotation = 0;
     system("cls");
     initBoard();
-
-    while (true){
+    
+    bool gameOver = false;
+    
+    while (!gameOver){
         boardDelBlock();
-        if (kbhit()){ // kbhit() checks if a key is pressed
+        if (kbhit()){ 
             int c = getch();
             if (c == 0 || c == 224) {
                 c = getch(); 
+                // Arrow keys
+                if (c==75 && canMove(-1,0)) x--;
+                if (c==77 && canMove(1,0)) x++;
+                if (c==80 && canMove(0,1)) y++;
+                if (c==72) rotateBlock();  // BẬT ROTATE
+            } else {
+                // Normal keys (A, S, D, W, Q)
+                if ((c=='a' || c=='A') && canMove(-1,0)) x--;
+                if ((c=='d' || c=='D') && canMove(1,0)) x++;
+                if ((c=='s' || c=='S') && canMove(0,1)) y++;
+                if (c=='w' || c=='W') rotateBlock();
+                if (c=='q' || c=='Q') {
+                    gameOver = true;
+                }
             }
-            if (c==75 && canMove(-1,0)) x--;    // Left arrow key
-            if (c==77 && canMove(1,0)) x++;     // Right arrow
-            if (c==80 && canMove(0,1))  y++;    // Down arrow
-            // if (c==72) rotate_block();                   // Up arrow
+            // XÓA HẾT KÝ TỰ THỪA TRONG BUFFER
+            while (kbhit()) getch();
         }
 
         if (canMove(0,1)) y++;
         else {
             block2Board();
             removeLine();
-            level = linesCleared/10+1; //Cập nhập cứ 10 dòng clear thì tăng 1 level
+            level = linesCleared/10+1;
             x = 5; y = 0;
             b = rand() % 7;
-            rotation = 0; // Reset rotation cho khối mới
+            rotation = 0;
 
             spawnBlock();
+            if (!canMove(0, 0)) {
+                gameOver = true;
+            }
         }
         block2Board();
         draw();
-        int speed = max(50, 200 - (level - 1) * 20); //Giảm 20 ms cho mỗi 1 lần tăng level
+        int speed = max(50, 200 - (level - 1) * 20);
         Sleep(speed);
     }
+    
+    gotoxy(0, H + 3);
+    setColor(red);
+    cout << "\n*** GAME OVER ***\n";
+    setColor(white);
+    cout << "Final - Level: " << level << " | Lines: " << linesCleared << endl;
+    cout << "Press any key to exit...";
+    getch();
+
     return 0;
 }
