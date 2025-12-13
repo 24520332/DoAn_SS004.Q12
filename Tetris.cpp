@@ -309,11 +309,14 @@ int main()
                 if (c==80 && canMove(0,1)) y++;
                 if (c==72) rotateBlock();  // BẬT ROTATE
             } else {
-                // Normal keys (A, S, D, W, Q)
+                // Normal keys (A, S, D, W, Q, Space)
                 if ((c=='a' || c=='A') && canMove(-1,0)) x--;
                 if ((c=='d' || c=='D') && canMove(1,0)) x++;
                 if ((c=='s' || c=='S') && canMove(0,1)) y++;
                 if (c=='w' || c=='W') rotateBlock();
+                if (c == 32) { // Space for hard drop
+                    while (canMove(0,1)) y++;
+                }
                 if (c=='q' || c=='Q') {
                     gameOver = true;
                 }
@@ -338,7 +341,7 @@ int main()
         }
         block2Board();
         draw();
-        int speed = max(50, 200 - (level - 1) * 20);
+        int speed = max(50, 300 - (level - 1) * 30);
         Sleep(speed);
     }
     
