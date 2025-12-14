@@ -162,6 +162,17 @@ public:
 
 // --- O Piece (không xoay) ---
 class OPiece : public Piece {
+public:
+    OPiece() : Piece('O') {
+        shape[1][1] = 'O';
+        shape[1][2] = 'O';
+        shape[2][1] = 'O';
+        shape[2][2] = 'O';
+    }
+    
+    void rotate(int& x, int& y, char board[H][W]) override {
+        // O piece không xoay
+    }
 };
 
 // --- T Piece ---
