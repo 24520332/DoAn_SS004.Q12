@@ -121,6 +121,43 @@ public:
 
 // --- I Piece ---
 class IPiece : public Piece {
+    
+private:
+    int wallKickData[4][5][2] = {
+        {{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}},
+        {{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}},
+        {{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}},
+        {{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}}
+    };
+    
+public:
+    IPiece() : Piece('I') {
+        shape[0][1] = 'I';
+        shape[1][1] = 'I';
+        shape[2][1] = 'I';
+        shape[3][1] = 'I';
+    }
+    
+    void rotate(int& x, int& y, char board[H][W]) override {
+        rotateShapeMatrix();
+        
+        // Thử wall kick
+        for (int k = 0; k < 5; k++) {
+            int dx = wallKickData[rotation][k][0];
+            int dy = wallKickData[rotation][k][1];
+            
+            if (isValidPosition(x + dx, y + dy, board)) {
+                x += dx;
+                y += dy;
+                rotation = (rotation + 1) % 4;
+                return;
+            }
+        }
+        
+        // Nếu không xoay được, xoay ngược lại
+        for (int i = 0; i < 3; i++)
+            rotateShapeMatrix();
+    }
 };
 
 // --- O Piece (không xoay) ---
