@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <conio.h>
 #include <windows.h>
 #include <ctime>
@@ -13,8 +13,8 @@ char board[H][W] = {};
 // --- Đồ họa ---
 // --------------
 
-enum Color {
-    red = 12,
+enum Color { 
+    red = 12, 
     green = 10,
     blue = 9,
     yellow = 14,
@@ -35,16 +35,16 @@ char ColorBlock(char c, int color) {
 }
 
 char blockChar(char c) {
-    switch (c) {
-    case 'I': return ColorBlock(c, cyan);
-    case 'O': return ColorBlock(c, yellow);
-    case 'T': return ColorBlock(c, purple);
-    case 'S': return ColorBlock(c, green);
-    case 'Z': return ColorBlock(c, red);
-    case 'J': return ColorBlock(c, blue);
-    case 'L': return ColorBlock(c, orange);
-    case '#': return ColorBlock(c, gray);
-    default: return ' ';
+    switch(c) {
+        case 'I': return ColorBlock(c, cyan);
+        case 'O': return ColorBlock(c, yellow);
+        case 'T': return ColorBlock(c, purple);
+        case 'S': return ColorBlock(c, green);
+        case 'Z': return ColorBlock(c, red);
+        case 'J': return ColorBlock(c, blue);
+        case 'L': return ColorBlock(c, orange);
+        case '#': return ColorBlock(c, gray);
+        default: return ' ';
     }
 }
 
@@ -57,52 +57,52 @@ protected:
     char shape[4][4];
     int rotation;
     char blockType;
-
+    
 public:
     Piece(char type) : rotation(0), blockType(type) {
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 shape[i][j] = ' ';
     }
-
+    
     virtual ~Piece() {}
-
+    
     // Hàm ảo để xoay - mỗi loại piece có cách xoay riêng
     virtual void rotate(int& x, int& y, char board[H][W]) = 0;
-
+    
     // Getter cho shape
     char getCell(int i, int j) const {
         return shape[i][j];
     }
-
+    
     void setCell(int i, int j, char c) {
         shape[i][j] = c;
     }
-
+    
     int getRotation() const {
         return rotation;
     }
-
+    
     void setRotation(int r) {
         rotation = r;
     }
-
+    
     char getBlockType() const {
         return blockType;
     }
-
+    
     // Hàm xoay cơ bản (clockwise)
     void rotateShapeMatrix() {
         char temp[4][4] = {};
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 temp[j][3 - i] = shape[i][j];
-
+        
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 shape[i][j] = temp[i][j];
     }
-
+    
     // Kiểm tra vị trí hợp lệ
     bool isValidPosition(int x, int y, char board[H][W]) const {
         for (int i = 0; i < 4; i++)
@@ -121,7 +121,7 @@ public:
 
 // --- I Piece ---
 class IPiece : public Piece {
-
+    
 private:
     int wallKickData[4][5][2] = {
         {{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}},
@@ -129,7 +129,7 @@ private:
         {{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}},
         {{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}}
     };
-
+    
 public:
     IPiece() : Piece('I') {
         shape[0][1] = 'I';
@@ -137,15 +137,15 @@ public:
         shape[2][1] = 'I';
         shape[3][1] = 'I';
     }
-
+    
     void rotate(int& x, int& y, char board[H][W]) override {
         rotateShapeMatrix();
-
+        
         // Thử wall kick
         for (int k = 0; k < 5; k++) {
             int dx = wallKickData[rotation][k][0];
             int dy = wallKickData[rotation][k][1];
-
+            
             if (isValidPosition(x + dx, y + dy, board)) {
                 x += dx;
                 y += dy;
@@ -153,7 +153,7 @@ public:
                 return;
             }
         }
-
+        
         // Nếu không xoay được, xoay ngược lại
         for (int i = 0; i < 3; i++)
             rotateShapeMatrix();
@@ -169,7 +169,7 @@ public:
         shape[2][1] = 'O';
         shape[2][2] = 'O';
     }
-
+    
     void rotate(int& x, int& y, char board[H][W]) override {
         // O piece không xoay
     }
@@ -249,21 +249,21 @@ void gotoxy(int x, int y) {
 
 Piece* createRandomPiece() {
     int type = rand() % 7;
-    switch (type) {
-    case 0: return new IPiece();
-    case 1: return new OPiece();
-    case 2: return new TPiece();
-    case 3: return new SPiece();
-    case 4: return new ZPiece();
-    case 5: return new JPiece();
-    case 6: return new LPiece();
-    default: return new TPiece();
+    switch(type) {
+        case 0: return new IPiece();
+        case 1: return new OPiece();
+        case 2: return new TPiece();
+        case 3: return new SPiece();
+        case 4: return new ZPiece();
+        case 5: return new JPiece();
+        case 6: return new LPiece();
+        default: return new TPiece();
     }
 }
 
 void boardDelBlock() {
     if (!currentPiece) return;
-
+    
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (currentPiece->getCell(i, j) != ' ') {
@@ -278,7 +278,7 @@ void boardDelBlock() {
 
 void block2Board() {
     if (!currentPiece) return;
-
+    
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (currentPiece->getCell(i, j) != ' ') {
@@ -294,9 +294,9 @@ void block2Board() {
 void initBoard() {
     for (int i = 0; i < H; i++)
         for (int j = 0; j < W; j++)
-            if ((i == H - 1) || (j == 0) || (j == W - 1))
+            if ((i == H - 1) || (j == 0) || (j == W - 1)) 
                 board[i][j] = '#';
-            else
+            else 
                 board[i][j] = ' ';
 }
 
@@ -313,7 +313,7 @@ void draw() {
 
 bool canMove(int dx, int dy) {
     if (!currentPiece) return false;
-
+    
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             if (currentPiece->getCell(i, j) != ' ') {
@@ -331,7 +331,7 @@ bool canMove(int dx, int dy) {
 void removeLine() {
     int cleared = 0;
     int dest = H - 2;
-
+    
     for (int src = H - 2; src >= 0; src--) {
         bool full = true;
         for (int j = 1; j < W - 1; j++) {
@@ -346,8 +346,7 @@ void removeLine() {
                 board[dest][j] = board[src][j];
             }
             dest--;
-        }
-        else {
+        } else {
             cleared++;
         }
     }
@@ -358,34 +357,33 @@ void removeLine() {
         }
     }
 
-    linesCleared += cleared;
+    linesCleared += cleared;        
 }
 
 int main() {
     srand(time(0));
-
+    
     system("cls");
     initBoard();
-
+    
     currentPiece = createRandomPiece();
     x = 5;  // SỬA: Spawn ở giữa bảng (W=15, nên x=5 hợp lý hơn x=4)
     y = 0;
-
+    
     bool gameOver = false;
-
+    
     while (!gameOver) {
         boardDelBlock();
-
-        if (kbhit()) {
+        
+        if (kbhit()) { 
             int c = getch();
             if (c == 0 || c == 224) {
-                c = getch();
+                c = getch(); 
                 if (c == 75 && canMove(-1, 0)) x--;
                 if (c == 77 && canMove(1, 0)) x++;
                 if (c == 80 && canMove(0, 1)) y++;
                 if (c == 72) currentPiece->rotate(x, y, board);
-            }
-            else {
+            } else {
                 if ((c == 'a' || c == 'A') && canMove(-1, 0)) x--;
                 if ((c == 'd' || c == 'D') && canMove(1, 0)) x++;
                 if ((c == 's' || c == 'S') && canMove(0, 1)) y++;
@@ -399,12 +397,11 @@ int main() {
 
         if (canMove(0, 1)) {
             y++;
-        }
-        else {
+        } else {
             block2Board();
             removeLine();
             level = linesCleared / 10 + 1;
-
+            
             delete currentPiece;
             currentPiece = createRandomPiece();
             x = 5;  // SỬA: Reset về vị trí giữa
@@ -414,10 +411,10 @@ int main() {
                 gameOver = true;
             }
         }
-
+        
         block2Board();
         draw();
-
+        
         int speed = max(50, 200 - (level - 1) * 20);
         Sleep(speed);
     }
