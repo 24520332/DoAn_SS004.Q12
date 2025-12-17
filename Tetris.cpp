@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <conio.h>
 #include <windows.h>
 #include <ctime>
@@ -187,7 +187,7 @@ class SPiece : public Piece {
 class ZPiece : public Piece {
 private:
 
-    int standardWallKickData[4][5][2] = {
+    int wallKickData[4][5][2] = {
         {{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
         {{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
         {{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
@@ -209,8 +209,8 @@ public:
         rotateShapeMatrix();
 
         for (int k = 0; k < 5; k++) {
-            int dx = standardWallKickData[prevRotation][k][0];
-            int dy = standardWallKickData[prevRotation][k][1];
+            int dx = wallKickData[rotation][k][0];
+            int dy = wallKickData[rotation][k][1];
 
             if (isValidPosition(x + dx, y + dy, board)) {
                 x += dx;
