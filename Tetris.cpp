@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <conio.h>
 #include <windows.h>
 #include <ctime>
@@ -16,9 +16,9 @@ char board[H][W] = {};
 enum Color { 
     red = 12, 
     green = 10,
-    blue = 9, 
-    yellow = 14, 
-    cyan = 11, 
+    blue = 9,
+    yellow = 14,
+    cyan = 11,
     white = 15,
     purple = 13,
     orange = 6,
@@ -185,6 +185,44 @@ class SPiece : public Piece {
 
 // --- Z Piece ---
 class ZPiece : public Piece {
+private:
+
+    int standardWallKickData[4][5][2] = {
+        {{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
+        {{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
+        {{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
+        {{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}
+    };
+
+public:
+    ZPiece() : Piece('Z') {
+        shape[1][0] = 'Z';
+        shape[1][1] = 'Z';
+        shape[2][1] = 'Z';
+        shape[2][2] = 'Z';
+    }
+
+    void rotate(int& x, int& y, char board[H][W]) override {
+
+
+
+        rotateShapeMatrix();
+
+        for (int k = 0; k < 5; k++) {
+            int dx = standardWallKickData[prevRotation][k][0];
+            int dy = standardWallKickData[prevRotation][k][1];
+
+            if (isValidPosition(x + dx, y + dy, board)) {
+                x += dx;
+                y += dy;
+                rotation = (rotation + 1) % 4;
+                return;
+            }
+        }
+
+        for (int i = 0; i < 3; i++)
+            rotateShapeMatrix();
+    }
 };
 
 // --- J Piece ---
@@ -205,7 +243,7 @@ int x = 4, y = 0;
 Piece* currentPiece = nullptr;
 
 void gotoxy(int x, int y) {
-    COORD c = {(SHORT)x, (SHORT)y};
+    COORD c = { (SHORT)x, (SHORT)y };
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
 
@@ -380,7 +418,7 @@ int main() {
         int speed = max(50, 200 - (level - 1) * 20);
         Sleep(speed);
     }
-    
+
     gotoxy(0, H + 3);
     setColor(red);
     cout << "\n*** GAME OVER ***\n";
