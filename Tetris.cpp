@@ -181,6 +181,40 @@ class TPiece : public Piece {
 
 // --- S Piece ---
 class SPiece : public Piece {
+private:
+    int wallKickData[4][5][2] = {
+        {{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
+        {{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
+        {{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
+        {{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}
+    };
+
+public:
+    SPiece() : Piece('S') {
+        shape[1][1] = 'S';
+        shape[1][2] = 'S';
+        shape[2][0] = 'S';
+        shape[2][1] = 'S';
+    }
+
+    void rotate(int& x, int& y, char board[H][W]) override {
+        rotateShapeMatrix();
+
+        for (int k = 0; k < 5; k++) {
+            int dx = wallKickData[rotation][k][0];
+            int dy = wallKickData[rotation][k][1];
+
+            if (isValidPosition(x + dx, y + dy, board)) {
+                x += dx;
+                y += dy;
+                rotation = (rotation + 1) % 4;
+                return;
+            }
+        }
+
+        for (int i = 0; i < 3; i++)
+            rotateShapeMatrix();
+    }
 };
 
 // --- Z Piece ---
