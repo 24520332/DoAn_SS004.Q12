@@ -84,6 +84,13 @@ Piece* createRandomPiece() {
     }
 }
 
+// ====================
+// TIMING (GUIDELINE)
+// ====================
+DWORD lastFall = 0;
+DWORD lockStart = 0;
+const int LOCK_DELAY = 500;
+
 // Gravity table (ms per cell)
 int gravityByLevel(int lvl) {
     static int table[] = {
@@ -165,12 +172,11 @@ void initBoard() {
 
 void draw() {
     gotoxy(0, 0);
-    for (int i = 0; i < H; i++, cout << endl)
+    for (int i = 0; i < H; i++, cout << '\n')
         for (int j = 0; j < W; j++) {
             cout << blockChar(board[i][j]) << blockChar(board[i][j]);
             setColor(white);
         }
-
     cout << "Level: " << level << " | Lines: " << linesCleared << endl;
 }
 
@@ -223,7 +229,60 @@ void removeLine() {
     linesCleared += cleared;        
 }
 
+// ====================
+// LOCK PIECE
+// ====================
+void lockPiece() {
+    block2Board();
+    removeLine();
+    level = linesCleared / 10 + 1;
 
+    delete currentPiece;
+    currentPiece = createRandomPiece();
+    x = 5; y = 0;
+    lockStart = 0;
+    lastFall = GetTickCount();
+
+    if (!canMove(0, 0)) gameOver = true;
+}
+
+// ====================
+// UPDATE
+// ====================
+void updateGame(InputState& in) {
+    DWORD now = GetTickCount();
+
+    boardDelBlock();
+
+    if (in.rotate) {
+        currentPiece->rotate(x, y, board);
+        lockStart = 0;
+    }
+
+    if (in.left && canMove(-1, 0)) { x--; lockStart = 0; }
+    if (in.right && canMove(1, 0)) { x++; lockStart = 0; }
+
+    if (in.hardDrop) {
+        while (canMove(0, 1)) y++;
+        lockPiece();
+        return;
+    }
+
+    int fallDelay = gravityByLevel(level);
+    if (now - lastFall >= fallDelay || in.softDrop) {
+        if (canMove(0, 1)) {
+            y++;
+            lastFall = now;
+        } else if (!lockStart) {
+            lockStart = now;
+        }
+    }
+
+    if (lockStart && now - lockStart >= LOCK_DELAY)
+        lockPiece();
+
+    block2Board();
+}
 
 int main() {
     srand(time(0));
@@ -232,54 +291,13 @@ int main() {
     initBoard();
     
     currentPiece = createRandomPiece();
-    x = 5;
-    y = 0;
     
     while (!gameOver) {
-        boardDelBlock();
-        
-        if (kbhit()) { 
-            int c = getch();
-            if (c == 0 || c == 224) {
-                c = getch(); 
-                if (c == 75 && canMove(-1, 0)) x--;
-                if (c == 77 && canMove(1, 0)) x++;
-                if (c == 80 && canMove(0, 1)) y++;
-                if (c == 72) currentPiece->rotate(x, y, board);
-            } else {
-                if ((c == 'a' || c == 'A') && canMove(-1, 0)) x--;
-                if ((c == 'd' || c == 'D') && canMove(1, 0)) x++;
-                if ((c == 's' || c == 'S') && canMove(0, 1)) y++;
-                if (c == 'w' || c == 'W') currentPiece->rotate(x, y, board);
-                if (c == 'q' || c == 'Q') {
-                    gameOver = true;
-                }
-            }
-            while (kbhit()) getch();
-        }
-
-        if (canMove(0, 1)) {
-            y++;
-        } else {
-            block2Board();
-            removeLine();
-            level = linesCleared / 10 + 1;
-            
-            delete currentPiece;
-            currentPiece = createRandomPiece();
-            x = 5;  // SỬA: Reset về vị trí giữa
-            y = 0;
-
-            if (!canMove(0, 0)) {
-                gameOver = true;
-            }
-        }
-        
-        block2Board();
-        draw();
-        
-        int speed = 50;
-        Sleep(speed);
+        InputState input;
+        readInput(input);
+        updateGame(input);
+        draw();      
+        Sleep(16);
     }
 
     gotoxy(0, H + 3);
