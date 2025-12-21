@@ -1,4 +1,5 @@
-﻿#include <iostream>
+﻿#define _CRT_NONSTDC_NO_WARNINGS
+#include <iostream>
 #include <conio.h>
 #include <windows.h>
 #include <ctime>
@@ -378,11 +379,55 @@ public:
 int linesCleared = 0;
 int level = 1;
 int x = 4, y = 0;
+int initialSpeed = 200; // (VQ) Tốc độ mặc định
 Piece* currentPiece = nullptr;
 
 void gotoxy(int x, int y) {
     COORD c = { (SHORT)x, (SHORT)y };
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
+}
+
+// (VQ) Hàm hiển thị Menu 
+int showMenu() {
+    int choice = 0;
+    string options[] = { " EASY ", " MEDIUM ", " HARD ", " EXIT " };
+    int numOptions = 4;
+
+    while (true) {
+        system("cls");
+        setColor(yellow);
+        cout << "\n\n";
+        cout << "   ======================\n";
+        cout << "   |       TETRIS       |\n";
+        cout << "   ======================\n\n";
+
+        setColor(white);
+        cout << "      Select The Level To Play:\n\n";
+
+        for (int i = 0; i < numOptions; i++) {
+            if (i == choice) {
+                setColor(cyan); //(VQ) Màu cho nút chọn
+                cout << "     >> [ " << options[i] << " ] <<" << endl;
+            }
+            else {
+                setColor(gray);
+                cout << "          " << options[i] << endl;
+            }
+        }
+
+        setColor(white);
+        cout << "\n   Use the arrow keys to move and the Enter key to select!";
+
+        int key = getch();
+        if (key == 224) { //(VQ) Phím mũi tên
+            key = getch();
+            if (key == 72) choice = (choice - 1 + numOptions) % numOptions; //(VQ) Lên
+            if (key == 80) choice = (choice + 1) % numOptions;              //(VQ) Xuống
+        }
+        else if (key == 13) { //(VQ) Enter
+            return choice;
+        }
+    }
 }
 
 Piece* createRandomPiece() {
@@ -500,6 +545,15 @@ void removeLine() {
 
 int main() {
     srand(time(0));
+
+    //(VQ) Hiển thị menu
+    int mode = showMenu();
+    if (mode == 3) return 0; //(VQ) Thoát game
+
+    //(VQ) Thiết lập tốc độ dựa trên lựa chọn
+    if (mode == 0) initialSpeed = 400; //(VQ) Dễ
+    if (mode == 1) initialSpeed = 200; //(VQ) Vừa
+    if (mode == 2) initialSpeed = 80;  //(VQ) Khó
     
     system("cls");
     initBoard();
@@ -553,7 +607,8 @@ int main() {
         block2Board();
         draw();
         
-        int speed = max(50, 200 - (level - 1) * 20);
+        //(VQ) Tính toán tốc độ
+        int speed = max(30, initialSpeed - (level - 1) * 15);
         Sleep(speed);
     }
 
