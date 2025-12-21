@@ -1,8 +1,14 @@
-﻿#define _CRT_NONSTDC_NO_WARNINGS
+﻿// Compile: g++ .\Tetris.cpp -o tetris -lwinmm
+
+#define _CRT_NONSTDC_NO_WARNINGS
 #include <iostream>
 #include <conio.h>
 #include <windows.h>
 #include <ctime>
+
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
 using namespace std;
 
 #define H 25
@@ -48,6 +54,49 @@ char blockChar(char c) {
         case '.': return ColorBlock('.', gray);//Ghost piece
         default: return ' ';
     }
+}
+
+// ==========================
+// === HỆ THỐNG ÂM THANH  ===
+// ==========================
+void initAudio() {
+    // Đổi mciSendString -> mciSendStringA
+    mciSendStringA("close all", NULL, 0, NULL);
+
+    mciSendStringA("open \"sound/theme-sound.mp3\" type mpegvideo alias theme", NULL, 0, NULL);
+    mciSendStringA("open \"sound/move.mp3\" type mpegvideo alias move", NULL, 0, NULL);
+    mciSendStringA("open \"sound/level-up.mp3\" type mpegvideo alias levelup", NULL, 0, NULL);
+    mciSendStringA("open \"sound/stage-clear.mp3\" type mpegvideo alias clear", NULL, 0, NULL);
+    mciSendStringA("open \"sound/game-over.mp3\" type mpegvideo alias gameover", NULL, 0, NULL);
+}
+
+void playThemeSound() {
+    mciSendStringA("play theme repeat", NULL, 0, NULL);
+}
+
+void stopThemeSound() {
+    mciSendStringA("stop theme", NULL, 0, NULL);
+    mciSendStringA("seek theme to start", NULL, 0, NULL);
+}
+
+void playMoveSound() {
+    mciSendStringA("play move from 0", NULL, 0, NULL);
+}
+
+void playStageClearSound() {
+    mciSendStringA("play clear from 0", NULL, 0, NULL);
+}
+
+void playLevelUpSound() {
+    mciSendStringA("play levelup from 0", NULL, 0, NULL);
+}
+
+void playGameOverSound() {
+    mciSendStringA("play gameover from 0", NULL, 0, NULL);
+}
+
+void closeAudio() {
+    mciSendStringA("close all", NULL, 0, NULL);
 }
 
 // ----------------------
@@ -815,6 +864,9 @@ int main() {
     srand(time(0));
     hideCursor();
 
+    // [SOUND] Khởi tạo hệ thống âm thanh
+    initAudio();
+
     GameState state = MENU;
 
     while (state != EXIT) {
@@ -832,6 +884,9 @@ int main() {
             system("cls");
             resetGame();
 
+            // [SOUND] Bắt đầu nhạc nền
+            playThemeSound();
+
             bool gameOver = false;
 
             while (!gameOver) {
@@ -848,18 +903,28 @@ int main() {
                         system("cls");
                     }
 
+                    bool playmovesound = true;
                     if (c == 0 || c == 224) {
                         c = getch();
                         if (c == 75 && canMove(-1, 0)) x--;
                         if (c == 77 && canMove(1, 0)) x++;
-                        if (c == 80 && canMove(0, 1)) y++;
+                        if (c == 80 && canMove(0, 1)) {
+                            y++;
+                            playmovesound = false; // Không phát âm thanh khi soft drop
+                        }
                         if (c == 72) currentPiece->rotate(x, y, board);
+                        if (playmovesound) playMoveSound();
                     }
                     else {
                         if ((c == 'a' || c == 'A') && canMove(-1, 0)) x--;
                         if ((c == 'd' || c == 'D') && canMove(1, 0)) x++;
-                        if ((c == 's' || c == 'S') && canMove(0, 1)) y++;
+                        if ((c == 's' || c == 'S') && canMove(0, 1)) 
+                        {
+                            y++;
+                            playmovesound = false; // Không phát âm thanh khi soft drop
+                        }
                         if (c == 'w' || c == 'W') currentPiece->rotate(x, y, board);
+                        if (playmovesound) playMoveSound();
                     }
 
                     while (kbhit()) getch();
@@ -870,8 +935,19 @@ int main() {
                 }
                 else {
                     block2Board();
+
+                    // [SOUND] Logic kiểm tra xóa dòng và lên cấp để phát âm thanh
+                    int oldLines = linesCleared;
+                    int oldLevel = level;
+
                     removeLine();
                     level = linesCleared / 10 + 1;
+
+                    if (level > oldLevel) {
+                        playLevelUpSound(); // [SOUND] Ưu tiên âm thanh lên cấp
+                    } else if (linesCleared > oldLines) {
+                        playStageClearSound(); // [SOUND] Âm thanh xóa dòng
+                    }
 
                     delete currentPiece;
                     currentPiece = nextPiece;
@@ -880,6 +956,10 @@ int main() {
                     y = 0;
 
                     if (!canMove(0, 0)) {
+                        // [SOUND] Xử lý Game Over
+                        stopThemeSound();   // Tắt nhạc nền
+                        playGameOverSound(); // Phát nhạc thua
+
                         gameOver = true;
                     }
                 }
@@ -899,6 +979,8 @@ int main() {
             }
         }
     }
+
+    closeAudio();
 
     if (currentPiece) delete currentPiece;
     if (nextPiece) delete nextPiece;
