@@ -379,6 +379,7 @@ int linesCleared = 0;
 int level = 1;
 int x = 4, y = 0;
 Piece* currentPiece = nullptr;
+Piece* nextPiece = nullptr;
 
 void gotoxy(int x, int y) {
     COORD c = { (SHORT)x, (SHORT)y };
@@ -447,6 +448,7 @@ void draw() {
         }
 
     cout << "Level: " << level << " | Lines: " << linesCleared << endl;
+    cout << "Press P to pause the game" << endl;
 }
 
 bool canMove(int dx, int dy) {
@@ -498,7 +500,100 @@ void removeLine() {
     linesCleared += cleared;        
 }
 
-int main() {
+// ----------------------
+// --- MENU SCREEN ---
+// ----------------------
+//Thêm các trạng thái game
+enum GameState { MENU, PLAYING, HOWTOPLAY, EXIT };
+
+//Menu
+void showMenu(GameState& state) {
+    system("cls");
+    setColor(cyan);
+    cout << "======== TETRIS ========\n\n";
+    setColor(white);
+    cout << "1. Start Game\n";
+    cout << "2. How to Play\n";
+    cout << "3. Exit\n\n";
+
+    char c = getch();
+    if (c == '1') state = PLAYING;
+    else if (c == '2') state = HOWTOPLAY;
+    else if (c == '3') state = EXIT;
+}
+
+//Hướng dẫn (How to Play)
+void showHowToPlay(GameState& state) {
+    system("cls");
+    setColor(yellow);
+    cout << "====== HOW TO PLAY ======\n\n";
+    setColor(white);
+    cout << "A/D: Move left/right\n";
+    cout << "W: Rotate\n";
+    cout << "S: Soft drop\n";
+    cout << "P: Pause the game\n";
+
+    cout << "\nPress X to return to Menu\n";
+    while (true) {
+        char c = getch();
+        if (c == 'x' || c == 'X') {
+            state = MENU;
+            return;
+        }
+    }
+}
+
+//Dừng màn chơi và menu Pause
+bool pauseMenu() {
+    system("cls");
+    setColor(yellow);
+    cout << "=== GAME PAUSED ===\n\n";
+    setColor(white);
+    cout << "P - Continue Game\n";
+    cout << "X - Return to Menu\n";
+
+    while (true) {
+        char c = getch();
+        if (c == 'p' || c == 'P') return true;   //Tiếp tục (Continue Game)
+        if (c == 'x' || c == 'X') return false;  //Trở về/Thoát màn chơi (Return to Menu)
+    }
+}
+
+//Thông báo khi thua 
+bool gameOverMenu() {
+    gotoxy(0, H + 2);
+    setColor(red);
+    cout << "\n*** GAME OVER ***\n";
+    setColor(white);
+    cout << "R - Play Again\n";
+    cout << "X - Return to Menu\n";
+
+    while (true) {
+        char c = getch();
+        if (c == 'r' || c == 'R') return true;   // Chơi lại
+        if (c == 'x' || c == 'X') return false;  // Trở về
+    }
+}
+
+//Chơi lại (Play Again)
+void resetGame() {
+    linesCleared = 0;
+    level = 1;
+    initBoard();
+
+    if (currentPiece) delete currentPiece;
+    if (nextPiece) delete nextPiece;
+
+    currentPiece = createRandomPiece();
+    nextPiece = createRandomPiece();
+
+
+    x = W / 2 - 2;
+    y = 0;
+}
+
+
+/*int main() {
     srand(time(0));
     
     system("cls");
@@ -566,5 +661,97 @@ int main() {
     getch();
 
     delete currentPiece;
+    return 0;
+}*/
+
+//Thay đổi hàm main cho các hàm mới
+int main() {
+    srand(time(0));
+
+    GameState state = MENU;
+
+    while (state != EXIT) {
+
+        if (state == MENU) {
+            showMenu(state);
+        }
+
+        else if (state == HOWTOPLAY) {
+            showHowToPlay(state);
+        }
+
+        else if (state == PLAYING) {
+
+            system("cls");
+            resetGame();
+
+            bool gameOver = false;
+
+            while (!gameOver) {
+                boardDelBlock();
+
+                if (kbhit()) {
+                    int c = getch();
+
+                    if (c == 'p' || c == 'P') {
+                        if (!pauseMenu()) {
+                            state = MENU;
+                            break;
+                        }
+                        system("cls");
+                    }
+
+                    if (c == 0 || c == 224) {
+                        c = getch();
+                        if (c == 75 && canMove(-1, 0)) x--;
+                        if (c == 77 && canMove(1, 0)) x++;
+                        if (c == 80 && canMove(0, 1)) y++;
+                        if (c == 72) currentPiece->rotate(x, y, board);
+                    }
+                    else {
+                        if ((c == 'a' || c == 'A') && canMove(-1, 0)) x--;
+                        if ((c == 'd' || c == 'D') && canMove(1, 0)) x++;
+                        if ((c == 's' || c == 'S') && canMove(0, 1)) y++;
+                        if (c == 'w' || c == 'W') currentPiece->rotate(x, y, board);
+                    }
+
+                    while (kbhit()) getch();
+                }
+
+                if (canMove(0, 1)) {
+                    y++;
+                }
+                else {
+                    block2Board();
+                    removeLine();
+                    level = linesCleared / 10 + 1;
+
+                    delete currentPiece;
+                    currentPiece = nextPiece;
+                    nextPiece = createRandomPiece();
+                    x = W / 2 - 2;
+                    y = 0;
+
+                    if (!canMove(0, 0)) {
+                        gameOver = true;
+                    }
+                }
+
+                block2Board();
+                draw();
+
+                int speed = max(50, 200 - (level - 1) * 20);
+                Sleep(speed);
+            }
+
+            if (state == PLAYING) {
+                bool replay = gameOverMenu();
+                if (!replay) state = MENU;
+            }
+        }
+    }
+
+    if (currentPiece) delete currentPiece;
+    if (nextPiece) delete nextPiece;
     return 0;
 }
