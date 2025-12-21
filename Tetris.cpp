@@ -1,4 +1,5 @@
-﻿#include <iostream>
+﻿#define _CRT_NONSTDC_NO_WARNINGS
+#include <iostream>
 #include <conio.h>
 #include <windows.h>
 #include <ctime>
@@ -389,16 +390,16 @@ void gotoxy(int x, int y) {
 // (VQ) Hàm hiển thị Menu 
 int showMenu() {
     int choice = 0;
-    string options[] = { " EASY        ", " MEDIUM     ", " HARD       ", " EXIT     " };
+    string options[] = { " EASY ", " MEDIUM ", " HARD ", " EXIT " };
     int numOptions = 4;
 
     while (true) {
         system("cls");
         setColor(yellow);
         cout << "\n\n";
-        cout << "   ========================\n";
-        cout << "   |       TETRIS         |\n";
-        cout << "   ========================\n\n";
+        cout << "   ======================\n";
+        cout << "   |       TETRIS       |\n";
+        cout << "   ======================\n\n";
 
         setColor(white);
         cout << "      Select The Level To Play:\n\n";
@@ -415,7 +416,7 @@ int showMenu() {
         }
 
         setColor(white);
-        cout << "\n   (Use the arrow keys to move and the Enter key to select.)";
+        cout << "\n   Use the arrow keys to move and the Enter key to select!";
 
         int key = getch();
         if (key == 224) { //(VQ) Phím mũi tên
