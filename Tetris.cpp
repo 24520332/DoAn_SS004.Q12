@@ -648,6 +648,8 @@ void clearGhostPiece() {
 }
 
 
+
+
 /*int main() {
     srand(time(0));
     
@@ -804,7 +806,7 @@ int main() {
                 drawGhostPiece();//Cập nhập vẽ ghost piece
                 block2Board();
                 draw();
-                drawGhostPiece();//Cập nhập vẽ ghost piece
+                clearGhostPiece();//Xóa ghost piece
 
                 int speed = max(50, 200 - (level - 1) * 20);
                 Sleep(speed);
