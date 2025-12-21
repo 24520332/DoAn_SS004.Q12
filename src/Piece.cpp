@@ -39,7 +39,7 @@ void Piece::rotateShapeMatrix() {
             shape[i][j] = temp[i][j];
 }
 
-bool Piece::isValidPosition(int x, int y, char board[H][W]) const {
+bool Piece::isValidPosition(int x, int y, char gameBoard[H][W]) const {
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             if (shape[i][j] != ' ') {
@@ -47,7 +47,7 @@ bool Piece::isValidPosition(int x, int y, char board[H][W]) const {
                 int ty = y + i;
                 if (tx < 1 || tx >= W - 1 || ty >= H - 1)
                     return false;
-                if (ty >= 0 && board[ty][tx] != ' ')
+                if (ty >= 0 && gameBoard[ty][tx] != ' ')
                     return false;
             }
     return true;

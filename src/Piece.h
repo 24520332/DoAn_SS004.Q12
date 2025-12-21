@@ -12,7 +12,7 @@ public:
     virtual ~Piece();
 
     // Hàm ảo để xoay - mỗi loại piece có cách xoay riêng
-    virtual void rotate(int& x, int& y, char board[H][W]) = 0;
+    virtual void rotate(int& x, int& y, char gameBoard[H][W]) = 0;
 
     // Getter cho shape
     char getCell(int i, int j) const;
@@ -29,5 +29,5 @@ public:
     void rotateShapeMatrix();
 
     // Kiểm tra vị trí hợp lệ
-    bool isValidPosition(int x, int y, char board[H][W]) const;
+    bool isValidPosition(int x, int y, char gameBoard[H][W]) const;
 };

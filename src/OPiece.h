@@ -5,5 +5,5 @@ class OPiece : public Piece {
 public:
     OPiece();
     
-    void rotate(int& x, int& y, char board[H][W]) override;
+    void rotate(int& /* x */, int& /* y */, char /* gameBoard */[H][W]) override;
 };

@@ -7,6 +7,6 @@ OPiece::OPiece() : Piece('O') {
     shape[2][2] = 'O';
 }
 
-void OPiece::rotate(int& x, int& y, char board[H][W]) {
+void OPiece::rotate(int& /* x */, int& /* y */, char /* gameBoard */[H][W]) {
     // O piece không xoay
 }

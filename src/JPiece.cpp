@@ -7,14 +7,14 @@ JPiece::JPiece() : Piece('J') {
     shape[2][0] = 'J';
 }
 
-void JPiece::rotate(int& x, int& y, char board[H][W]) {
+void JPiece::rotate(int& x, int& y, char gameBoard[H][W]) {
     rotateShapeMatrix();
 
     for (int k = 0; k < 5; k++) {
         int dx = wallKick[rotation][k][0];
         int dy = wallKick[rotation][k][1];
 
-        if (isValidPosition(x + dx, y + dy, board)) {
+        if (isValidPosition(x + dx, y + dy, gameBoard)) {
             x += dx;
             y += dy;
             rotation = (rotation + 1) % 4;

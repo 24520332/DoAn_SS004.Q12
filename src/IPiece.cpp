@@ -7,7 +7,7 @@ IPiece::IPiece() : Piece('I') {
     shape[3][1] = 'I';
 }
 
-void IPiece::rotate(int& x, int& y, char board[H][W]) {
+void IPiece::rotate(int& x, int& y, char gameBoard[H][W]) {
     rotateShapeMatrix();
     
     // Thử wall kick
@@ -15,7 +15,7 @@ void IPiece::rotate(int& x, int& y, char board[H][W]) {
         int dx = wallKickData[rotation][k][0];
         int dy = wallKickData[rotation][k][1];
         
-        if (isValidPosition(x + dx, y + dy, board)) {
+        if (isValidPosition(x + dx, y + dy, gameBoard)) {
             x += dx;
             y += dy;
             rotation = (rotation + 1) % 4;

@@ -32,10 +32,10 @@ enum Color {
 };
 
 void setColor(int color) {
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), static_cast<WORD>(color));
 }
 
-char ColorBlock(char c, int color) {
+char ColorBlock(char /* c */, int color) {
     setColor(color);
     return '\xDB';
 }
@@ -66,8 +66,8 @@ Bag bag;
 long score = 0;
 bool gameOver = false;
 
-void gotoxy(int x, int y) {
-    COORD c = { (SHORT)x, (SHORT)y };
+void gotoxy(int gotoX, int gotoY) {
+    COORD c = { static_cast<SHORT>(gotoX), static_cast<SHORT>(gotoY) };
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
 
@@ -289,7 +289,7 @@ void updateGame(InputState& in) {
         return;
     }
 
-    int fallDelay = gravityByLevel(level);
+    DWORD fallDelay = static_cast<DWORD>(gravityByLevel(level));
     if (now - lastFall >= fallDelay || in.softDrop) {
         if (canMove(0, 1)) {
             y++;
@@ -306,7 +306,7 @@ void updateGame(InputState& in) {
 }
 
 int main() {
-    srand(time(0));
+    srand(static_cast<unsigned int>(time(0)));
     
     system("cls");
     initBoard();
