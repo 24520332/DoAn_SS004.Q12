@@ -606,7 +606,8 @@ int main() {
         block2Board();
         draw();
         
-        int speed = max(50, 200 - (level - 1) * 20);
+        //(VQ) Tính toán tốc độ
+        int speed = max(30, initialSpeed - (level - 1) * 15);
         Sleep(speed);
     }
 
