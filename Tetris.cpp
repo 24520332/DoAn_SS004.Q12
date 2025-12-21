@@ -544,6 +544,15 @@ void removeLine() {
 
 int main() {
     srand(time(0));
+
+    //(VQ) Hiển thị menu
+    int mode = showMenu();
+    if (mode == 3) return 0; //(VQ) Thoát game
+
+    //(VQ) Thiết lập tốc độ dựa trên lựa chọn
+    if (mode == 0) initialSpeed = 400; //(VQ) Dễ
+    if (mode == 1) initialSpeed = 200; //(VQ) Vừa
+    if (mode == 2) initialSpeed = 80;  //(VQ) Khó
     
     system("cls");
     initBoard();
