@@ -53,9 +53,11 @@ char blockChar(char c) {
     }
 }
 
-// ----------------------
-// --- GAME FUNCTIONS ---
-// ----------------------
+
+
+// ====================
+// GAME STATE
+// ====================
 
 int linesCleared = 0;
 int level = 1;
@@ -81,6 +83,46 @@ Piece* createRandomPiece() {
         default: return new TPiece();
     }
 }
+
+// Gravity table (ms per cell)
+int gravityByLevel(int lvl) {
+    static int table[] = {
+        1000, 793, 617, 473, 355, 262, 190,
+        135, 94, 64, 43, 28, 18, 11, 7
+    };
+    return table[min(lvl - 1, 14)];
+}
+
+// ====================
+// INPUT
+// ====================
+struct InputState {
+    bool left = false;
+    bool right = false;
+    bool softDrop = false;
+    bool hardDrop = false;
+    bool rotate = false;
+};
+
+void readInput(InputState& in) {
+    in = {};
+
+    while (kbhit()) {
+        int c = getch();
+        if (c == 224) c = getch();
+
+        if (c == 75 || c == 'a' || c == 'A') in.left = true;
+        if (c == 77 || c == 'd' || c == 'D') in.right = true;
+        if (c == 80 || c == 's' || c == 'S') in.softDrop = true;
+        if (c == 72 || c == 'w' || c == 'W') in.rotate = true;
+        if (c == ' ') in.hardDrop = true;
+        if (c == 'q' || c == 'Q') gameOver = true;
+    }
+}
+
+// ----------------------
+// --- GAME FUNCTIONS ---
+// ----------------------
 
 void boardDelBlock() {
     if (!currentPiece) return;
@@ -181,32 +223,7 @@ void removeLine() {
     linesCleared += cleared;        
 }
 
-// ====================
-// INPUT
-// ====================
-struct InputState {
-    bool left = false;
-    bool right = false;
-    bool softDrop = false;
-    bool hardDrop = false;
-    bool rotate = false;
-};
 
-void readInput(InputState& in) {
-    in = {};
-
-    while (kbhit()) {
-        int c = getch();
-        if (c == 224) c = getch();
-
-        if (c == 75 || c == 'a' || c == 'A') in.left = true;
-        if (c == 77 || c == 'd' || c == 'D') in.right = true;
-        if (c == 80 || c == 's' || c == 'S') in.softDrop = true;
-        if (c == 72 || c == 'w' || c == 'W') in.rotate = true;
-        if (c == ' ') in.hardDrop = true;
-        if (c == 'q' || c == 'Q') gameOver = true;
-    }
-}
 
 int main() {
     srand(time(0));
