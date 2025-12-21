@@ -9,6 +9,7 @@
 #include "ZPiece.h"
 #include "JPiece.h"
 #include "LPiece.h"
+#include "Bag.h"
 
 using namespace std;
 
@@ -53,8 +54,6 @@ char blockChar(char c) {
     }
 }
 
-
-
 // ====================
 // GAME STATE
 // ====================
@@ -63,6 +62,7 @@ int linesCleared = 0;
 int level = 1;
 int x = 5, y = 0;
 Piece* currentPiece = nullptr;
+Bag bag;
 long score = 0;
 bool gameOver = false;
 
@@ -72,7 +72,7 @@ void gotoxy(int x, int y) {
 }
 
 Piece* createRandomPiece() {
-    int type = rand() % 7;
+    int type = bag.next();
     switch(type) {
         case 0: return new IPiece();
         case 1: return new OPiece();
