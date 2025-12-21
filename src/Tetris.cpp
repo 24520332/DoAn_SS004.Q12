@@ -233,16 +233,16 @@ void removeLine() {
     switch (cleared)
     {
     case 1:
-        score += 100;
+        score += 100 * level;
         break;
     case 2:
-        score += 250;
+        score += 300 * level;
         break;
     case 3:
-        score += 450;
+        score += 500 * level;
         break;
     case 4:
-        score += 700;
+        score += 800 * level;
         break;    
     default:
         break;
@@ -283,7 +283,7 @@ void updateGame(InputState& in) {
     if (in.right && canMove(1, 0)) { x++; lockStart = 0; }
 
     if (in.hardDrop) {
-        score += 20; // Cộng điểm cho sự quyết đoán
+        score += 10;
         while (canMove(0, 1)) y++;
         lockPiece();
         return;
