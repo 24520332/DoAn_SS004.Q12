@@ -44,6 +44,7 @@ char blockChar(char c) {
         case 'J': return ColorBlock(c, blue);
         case 'L': return ColorBlock(c, orange);
         case '#': return ColorBlock(c, gray);
+        case '.': return ColorBlock('.', gray);//Ghost piece
         default: return ' ';
     }
 }
@@ -381,6 +382,11 @@ int x = 4, y = 0;
 Piece* currentPiece = nullptr;
 Piece* nextPiece = nullptr;
 
+//Ghost Piece
+int getGhostY();
+void drawGhostPiece();
+void clearGhostPiece();
+
 void gotoxy(int x, int y) {
     COORD c = { (SHORT)x, (SHORT)y };
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
@@ -592,6 +598,55 @@ void resetGame() {
     y = 0;
 }
 
+// ----------------------
+// --- GHOST PIECE ---
+// ----------------------
+//TÍnh vị trí của ghost piece
+int getGhostY() {
+    int ghostY = y;
+    while (true) {
+        bool canFall = true;
+
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++) {
+                if (currentPiece->getCell(i, j) != ' ') {
+                    int tx = x + j;
+                    int ty = ghostY + i + 1;
+                    if (ty >= H - 1 || board[ty][tx] != ' ') {
+                        canFall = false;
+                        break;
+                    }
+                }
+            }
+        if (!canFall) break;
+        ghostY++;
+    }
+    return ghostY;
+}
+
+//Vẽ ghost piece
+void drawGhostPiece() {
+    int ghostY = getGhostY();
+
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            if (currentPiece->getCell(i, j) != ' ') {
+                int tx = x + j;
+                int ty = ghostY + i;
+
+                if (board[ty][tx] == ' ')
+                    board[ty][tx] = '.';
+            }
+}
+
+//Xóa sau khi vẽ
+void clearGhostPiece() {
+    for (int i = 0; i < H; i++)
+        for (int j = 0; j < W; j++)
+            if (board[i][j] == '.')
+                board[i][j] = ' ';
+}
+
 
 /*int main() {
     srand(time(0));
@@ -746,8 +801,10 @@ int main() {
                     }
                 }
 
+                drawGhostPiece();//Cập nhập vẽ ghost piece
                 block2Board();
                 draw();
+                drawGhostPiece();//Cập nhập vẽ ghost piece
 
                 int speed = max(50, 200 - (level - 1) * 20);
                 Sleep(speed);
