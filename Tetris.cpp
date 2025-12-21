@@ -664,9 +664,18 @@ void resetGame() {
     return 0;
 }*/
 
+//Cập nhập ẩn con trỏ nhấp nháy
+void hideCursor() {
+    CONSOLE_CURSOR_INFO cursorInfo;
+    GetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+    cursorInfo.bVisible = false; // Set the cursor visibility to false
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+}
+
 //Thay đổi hàm main cho các hàm mới
 int main() {
     srand(time(0));
+    hideCursor();
 
     GameState state = MENU;
 
