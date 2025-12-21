@@ -63,6 +63,7 @@ int linesCleared = 0;
 int level = 1;
 int x = 5, y = 0;
 Piece* currentPiece = nullptr;
+long score = 0;
 bool gameOver = false;
 
 void gotoxy(int x, int y) {
@@ -177,7 +178,9 @@ void draw() {
             cout << blockChar(board[i][j]) << blockChar(board[i][j]);
             setColor(white);
         }
-    cout << "Level: " << level << " | Lines: " << linesCleared << endl;
+    cout << "Level: " << level
+     << " | Lines: " << linesCleared 
+     <<" | Score: " << score << "\n";
 }
 
 bool canMove(int dx, int dy) {
@@ -226,7 +229,24 @@ void removeLine() {
         }
     }
 
-    linesCleared += cleared;        
+    linesCleared += cleared;
+    switch (cleared)
+    {
+    case 1:
+        score += 100;
+        break;
+    case 2:
+        score += 250;
+        break;
+    case 3:
+        score += 450;
+        break;
+    case 4:
+        score += 700;
+        break;    
+    default:
+        break;
+    }
 }
 
 // ====================
@@ -263,6 +283,7 @@ void updateGame(InputState& in) {
     if (in.right && canMove(1, 0)) { x++; lockStart = 0; }
 
     if (in.hardDrop) {
+        score += 20; // Cộng điểm cho sự quyết đoán
         while (canMove(0, 1)) y++;
         lockPiece();
         return;
@@ -304,7 +325,9 @@ int main() {
     setColor(red);
     cout << "\n*** GAME OVER ***\n";
     setColor(white);
-    cout << "Final - Level: " << level << " | Lines: " << linesCleared << endl;
+    cout << "Level: " << level
+     << " | Lines: " << linesCleared 
+     <<" | Score: " << score << "\n";
     cout << "Press any key to exit...";
     getch();
 
