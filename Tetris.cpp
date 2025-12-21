@@ -389,7 +389,7 @@ void gotoxy(int x, int y) {
 // (VQ) Hàm hiển thị Menu 
 int showMenu() {
     int choice = 0;
-    string options[] = { " EASY (Dễ)       ", " MEDIUM (Vừa)    ", " HARD (Khó)      ", " EXIT (Thoát)    " };
+    string options[] = { " EASY        ", " MEDIUM     ", " HARD       ", " EXIT     " };
     int numOptions = 4;
 
     while (true) {
@@ -401,7 +401,7 @@ int showMenu() {
         cout << "   ========================\n\n";
 
         setColor(white);
-        cout << "      Chọn Mức Độ Để Chơi:\n\n";
+        cout << "      Select The Level To Play:\n\n";
 
         for (int i = 0; i < numOptions; i++) {
             if (i == choice) {
@@ -415,7 +415,7 @@ int showMenu() {
         }
 
         setColor(white);
-        cout << "\n   (Dùng phím mũi tên để di chuyển, dùng phím Enter để chọn)";
+        cout << "\n   (Use the arrow keys to move and the Enter key to select.)";
 
         int key = getch();
         if (key == 224) { //(VQ) Phím mũi tên
