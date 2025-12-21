@@ -1,4 +1,5 @@
-﻿#include <iostream>
+﻿#define _CRT_NONSTDC_NO_WARNINGS
+#include <iostream>
 #include <conio.h>
 #include <windows.h>
 #include <ctime>
@@ -50,6 +51,7 @@ char blockChar(char c) {
         case 'J': return ColorBlock(c, blue);
         case 'L': return ColorBlock(c, orange);
         case '#': return ColorBlock(c, gray);
+        case '.': return ColorBlock('.', gray);//Ghost piece
         default: return ' ';
     }
 }
@@ -62,9 +64,18 @@ int linesCleared = 0;
 int level = 1;
 int x = 5, y = 0;
 Piece* currentPiece = nullptr;
+Piece* nextPiece = nullptr;
 Bag bag;
 long score = 0;
 bool gameOver = false;
+
+//Ghost Piece forward declarations
+int getGhostY();
+void drawGhostPiece();
+void clearGhostPiece();
+
+//Preview forward declaration
+void drawNextPiece();
 
 void gotoxy(int gotoX, int gotoY) {
     COORD c = { static_cast<SHORT>(gotoX), static_cast<SHORT>(gotoY) };
@@ -181,6 +192,8 @@ void draw() {
     cout << "Level: " << level
      << " | Lines: " << linesCleared 
      <<" | Score: " << score << "\n";
+    cout << "Press P to pause the game" << "\n";
+    drawNextPiece();//Vẽ khối sẽ xuất hiện tiếp theo
 }
 
 bool canMove(int dx, int dy) {
@@ -258,12 +271,188 @@ void lockPiece() {
     level = linesCleared / 10 + 1;
 
     delete currentPiece;
-    currentPiece = createRandomPiece();
+    currentPiece = nextPiece;
+    nextPiece = createRandomPiece();
     x = 5; y = 0;
     lockStart = 0;
     lastFall = GetTickCount();
 
     if (!canMove(0, 0)) gameOver = true;
+}
+
+// ----------------------
+// --- GHOST PIECE ---
+// ----------------------
+//Tính vị trí của ghost piece
+int getGhostY() {
+    int ghostY = y;
+    while (true) {
+        bool canFall = true;
+
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++) {
+                if (currentPiece->getCell(i, j) != ' ') {
+                    int tx = x + j;
+                    int ty = ghostY + i + 1;
+                    if (ty >= H - 1 || board[ty][tx] != ' ') {
+                        canFall = false;
+                        break;
+                    }
+                }
+            }
+        if (!canFall) break;
+        ghostY++;
+    }
+    return ghostY;
+}
+
+//Vẽ ghost piece
+void drawGhostPiece() {
+    int ghostY = getGhostY();
+
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            if (currentPiece->getCell(i, j) != ' ') {
+                int tx = x + j;
+                int ty = ghostY + i;
+
+                if (board[ty][tx] == ' ')
+                    board[ty][tx] = '.';
+            }
+}
+
+//Xóa sau khi vẽ
+void clearGhostPiece() {
+    for (int i = 0; i < H; i++)
+        for (int j = 0; j < W; j++)
+            if (board[i][j] == '.')
+                board[i][j] = ' ';
+}
+
+// ----------------------
+// --- PREVIEW PIECE ---
+// ----------------------
+//Vẽ ô Next Piece
+void drawNextPiece() {
+    if (!nextPiece) return;
+    
+    int startX = W * 2 + 4;
+    int startY = 2;
+
+    gotoxy(startX, startY);
+    cout << "NEXT: ";
+
+    for (int i = 0; i < 4; i++) {
+        gotoxy(startX, startY + i + 1);
+        for (int j = 0; j < 4; j++) {
+            char c = nextPiece->getCell(i, j);
+            if (c != ' ')
+                cout << blockChar(c) << blockChar(c);
+            else
+                cout << "  ";
+        }
+    }
+}
+
+// ----------------------
+// --- MENU SYSTEM ---
+// ----------------------
+enum GameState { MENU, PLAYING, HOWTOPLAY, EXIT };
+
+void showMenu(GameState& state) {
+    system("cls");
+    setColor(cyan);
+    cout << "======== TETRIS ========\n\n";
+    setColor(white);
+    cout << "1. Start Game\n";
+    cout << "2. How to Play\n";
+    cout << "3. Exit\n\n";
+
+    char c = static_cast<char>(getch());
+    if (c == '1') state = PLAYING;
+    else if (c == '2') state = HOWTOPLAY;
+    else if (c == '3') state = EXIT;
+}
+
+void showHowToPlay(GameState& state) {
+    system("cls");
+    setColor(yellow);
+    cout << "====== HOW TO PLAY ======\n\n";
+    setColor(white);
+    cout << "Arrow Keys / WASD: Move and rotate\n";
+    cout << "W / Up Arrow: Rotate\n";
+    cout << "S / Down Arrow: Soft drop\n";
+    cout << "Space: Hard drop\n";
+    cout << "P: Pause the game\n";
+    cout << "Q: Quit\n";
+
+    cout << "\nPress X to return to Menu\n";
+    while (true) {
+        char c = static_cast<char>(getch());
+        if (c == 'x' || c == 'X') {
+            state = MENU;
+            return;
+        }
+    }
+}
+
+bool pauseMenu() {
+    system("cls");
+    setColor(yellow);
+    cout << "=== GAME PAUSED ===\n\n";
+    setColor(white);
+    cout << "P - Continue Game\n";
+    cout << "X - Return to Menu\n";
+
+    while (true) {
+        char c = static_cast<char>(getch());
+        if (c == 'p' || c == 'P') return true;
+        if (c == 'x' || c == 'X') return false;
+    }
+}
+
+bool gameOverMenu() {
+    gotoxy(0, H + 4);
+    setColor(red);
+    cout << "\n*** GAME OVER ***\n";
+    setColor(white);
+    cout << "Level: " << level
+         << " | Lines: " << linesCleared
+         << " | Score: " << score << "\n";
+    cout << "R - Play Again\n";
+    cout << "X - Return to Menu\n";
+
+    while (true) {
+        char c = static_cast<char>(getch());
+        if (c == 'r' || c == 'R') return true;
+        if (c == 'x' || c == 'X') return false;
+    }
+}
+
+void resetGame() {
+    linesCleared = 0;
+    level = 1;
+    score = 0;
+    x = 5;
+    y = 0;
+    gameOver = false;
+    lockStart = 0;
+    lastFall = 0;
+    
+    initBoard();
+
+    if (currentPiece) delete currentPiece;
+    if (nextPiece) delete nextPiece;
+
+    currentPiece = createRandomPiece();
+    nextPiece = createRandomPiece();
+}
+
+void hideCursor() {
+    CONSOLE_CURSOR_INFO cursorInfo;
+    GetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+    cursorInfo.bVisible = false;
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
 }
 
 // ====================
@@ -307,30 +496,59 @@ void updateGame(InputState& in) {
 
 int main() {
     srand(static_cast<unsigned int>(time(0)));
-    
-    system("cls");
-    initBoard();
-    
-    currentPiece = createRandomPiece();
-    
-    while (!gameOver) {
-        InputState input;
-        readInput(input);
-        updateGame(input);
-        draw();      
-        Sleep(16);
+    hideCursor();
+
+    GameState state = MENU;
+
+    while (state != EXIT) {
+
+        if (state == MENU) {
+            showMenu(state);
+        }
+
+        else if (state == HOWTOPLAY) {
+            showHowToPlay(state);
+        }
+
+        else if (state == PLAYING) {
+            system("cls");
+            resetGame();
+
+            while (!gameOver) {
+                InputState input;
+                readInput(input);
+                
+                // Check for pause
+                if (input.hardDrop == false && input.softDrop == false && 
+                    input.left == false && input.right == false && input.rotate == false) {
+                    // Additional check for 'P' key
+                    if (kbhit()) {
+                        int c = getch();
+                        if (c == 'p' || c == 'P') {
+                            if (!pauseMenu()) {
+                                state = MENU;
+                                break;
+                            }
+                            system("cls");
+                        }
+                    }
+                }
+
+                updateGame(input);
+                drawGhostPiece();
+                draw();
+                clearGhostPiece();
+                Sleep(16);
+            }
+
+            if (state == PLAYING && gameOver) {
+                bool replay = gameOverMenu();
+                if (!replay) state = MENU;
+            }
+        }
     }
 
-    gotoxy(0, H + 3);
-    setColor(red);
-    cout << "\n*** GAME OVER ***\n";
-    setColor(white);
-    cout << "Level: " << level
-     << " | Lines: " << linesCleared 
-     <<" | Score: " << score << "\n";
-    cout << "Press any key to exit...";
-    getch();
-
-    delete currentPiece;
+    if (currentPiece) delete currentPiece;
+    if (nextPiece) delete nextPiece;
     return 0;
 }
