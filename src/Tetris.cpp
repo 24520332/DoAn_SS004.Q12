@@ -59,8 +59,9 @@ char blockChar(char c) {
 
 int linesCleared = 0;
 int level = 1;
-int x = 4, y = 0;
+int x = 5, y = 0;
 Piece* currentPiece = nullptr;
+bool gameOver = false;
 
 void gotoxy(int x, int y) {
     COORD c = { (SHORT)x, (SHORT)y };
@@ -180,6 +181,33 @@ void removeLine() {
     linesCleared += cleared;        
 }
 
+// ====================
+// INPUT
+// ====================
+struct InputState {
+    bool left = false;
+    bool right = false;
+    bool softDrop = false;
+    bool hardDrop = false;
+    bool rotate = false;
+};
+
+void readInput(InputState& in) {
+    in = {};
+
+    while (kbhit()) {
+        int c = getch();
+        if (c == 224) c = getch();
+
+        if (c == 75 || c == 'a' || c == 'A') in.left = true;
+        if (c == 77 || c == 'd' || c == 'D') in.right = true;
+        if (c == 80 || c == 's' || c == 'S') in.softDrop = true;
+        if (c == 72 || c == 'w' || c == 'W') in.rotate = true;
+        if (c == ' ') in.hardDrop = true;
+        if (c == 'q' || c == 'Q') gameOver = true;
+    }
+}
+
 int main() {
     srand(time(0));
     
@@ -187,10 +215,8 @@ int main() {
     initBoard();
     
     currentPiece = createRandomPiece();
-    x = 5;  // SỬA: Spawn ở giữa bảng (W=15, nên x=5 hợp lý hơn x=4)
+    x = 5;
     y = 0;
-    
-    bool gameOver = false;
     
     while (!gameOver) {
         boardDelBlock();
@@ -235,7 +261,7 @@ int main() {
         block2Board();
         draw();
         
-        int speed = max(50, 200 - (level - 1) * 20);
+        int speed = 50;
         Sleep(speed);
     }
 
