@@ -4,8 +4,8 @@
 #include <ctime>
 using namespace std;
 
-#define H 20
-#define W 15
+#define H 25
+#define W 12
 
 char board[H][W] = {};
 
@@ -387,6 +387,9 @@ int getGhostY();
 void drawGhostPiece();
 void clearGhostPiece();
 
+//Preiew
+void drawNextPiece();
+
 void gotoxy(int x, int y) {
     COORD c = { (SHORT)x, (SHORT)y };
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
@@ -455,6 +458,7 @@ void draw() {
 
     cout << "Level: " << level << " | Lines: " << linesCleared << endl;
     cout << "Press P to pause the game" << endl;
+    drawNextPiece();//Vẽ khối sẽ xuất hiện tiếp theo
 }
 
 bool canMove(int dx, int dy) {
@@ -647,7 +651,29 @@ void clearGhostPiece() {
                 board[i][j] = ' ';
 }
 
+// ----------------------
+// --- PREVIEW PIECE ---
+// ----------------------
+//Thông báo piece tiếp theo
+//Vẽ ô Next Piece
+void drawNextPiece() {
+    int startX = W * 2 + 4;
+    int startY = 2;
 
+    gotoxy(startX, startY);
+    cout << "NEXT: ";
+
+    for (int i = 0; i < 4; i++) {
+        gotoxy(startX, startY + i + 1);
+        for (int j = 0; j < 4; j++) {
+            char c = nextPiece->getCell(i, j);
+            if (c != ' ')
+                cout << blockChar(c) << blockChar(c);
+            else
+                cout << "  ";
+        }
+    }
+}
 
 
 /*int main() {
