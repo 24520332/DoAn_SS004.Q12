@@ -71,11 +71,12 @@ string blockChar(char c) {
 void initAudio() {
     mciSendStringA("close all", NULL, 0, NULL);
 
-    mciSendStringA("open \"sound/theme-sound.mp3\" type mpegvideo alias theme", NULL, 0, NULL);
-    mciSendStringA("open \"sound/move.mp3\" type mpegvideo alias move", NULL, 0, NULL);
-    mciSendStringA("open \"sound/level-up.mp3\" type mpegvideo alias levelup", NULL, 0, NULL);
-    mciSendStringA("open \"sound/stage-clear.mp3\" type mpegvideo alias clear", NULL, 0, NULL);
-    mciSendStringA("open \"sound/game-over.mp3\" type mpegvideo alias gameover", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\theme-sound.mp3\" type mpegvideo alias theme", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\move.mp3\" type mpegvideo alias move", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\level-up.mp3\" type mpegvideo alias levelup", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\stage-clear.mp3\" type mpegvideo alias clear", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\game-over.mp3\" type mpegvideo alias gameover", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\lock.mp3\" type mpegvideo alias lock", NULL, 0, NULL);
 }
 
 void playThemeSound() {
@@ -101,6 +102,10 @@ void playLevelUpSound() {
 
 void playGameOverSound() {
     mciSendStringA("play gameover from 0", NULL, 0, NULL);
+}
+
+void playLockSound() {
+    mciSendStringA("play lock from 0", NULL, 0, NULL);
 }
 
 void closeAudio() {
@@ -246,11 +251,15 @@ void readInput(InputState& in) {
     static DWORD lastRightTime = 0;
     static DWORD lastRotateTime = 0;
     static DWORD lastSpaceTime = 0;
+    static DWORD lastPauseTime = 0;
+    static DWORD lastSoftDropTime = 0;
     
     DWORD now = GetTickCount();
     const int DAS_DELAY = 150; // Delay Auto Shift: Độ trễ khi giữ phím (ms)
     const int ARR_RATE = 30;   // Auto Repeat Rate: Tốc độ lặp (ms)
-    const int SPACE_DELAY = 300; // Delay cho phím space (ms)
+    const int SPACE_DELAY = 500; // Delay cho phím space (ms) - tăng lên 500ms
+    const int PAUSE_DELAY = 800; // Delay cho phím pause (ms) - tăng lên 800ms
+    const int SOFT_DROP_DELAY = 50; // Delay cho soft drop (ms)
 
     // Xử lý sang TRÁI
     if (isKeyPressed(VK_LEFT) || isKeyPressed('A')) {
@@ -282,8 +291,13 @@ void readInput(InputState& in) {
         }
     }
 
-    // Các phím chức năng khác
-    if (isKeyPressed(VK_DOWN) || isKeyPressed('S')) in.softDrop = true;
+    // Soft drop với delay
+    if (isKeyPressed(VK_DOWN) || isKeyPressed('S')) {
+        if (now - lastSoftDropTime > SOFT_DROP_DELAY) {
+            in.softDrop = true;
+            lastSoftDropTime = now;
+        }
+    }
     
     // Hard drop với delay
     if (isKeyPressed(VK_SPACE)) {
@@ -293,7 +307,14 @@ void readInput(InputState& in) {
         }
     }
     
-    if (isKeyPressed('P')) in.pause = true;
+    // Pause với delay
+    if (isKeyPressed('P')) {
+        if (now - lastPauseTime > PAUSE_DELAY) {
+            in.pause = true;
+            lastPauseTime = now;
+        }
+    }
+    
     if (isKeyPressed('L')) gameOver = true;
     
     // Xóa bộ đệm bàn phím thừa để tránh xung đột với getch() ở menu
@@ -510,6 +531,10 @@ void lockPiece() {
     int oldLines = linesCleared;
 
     block2Board();
+    
+    // [SOUND] Âm thanh đập đáy
+    playLockSound();
+    
     removeLine();
     // Level giữ nguyên, không tăng tự động
 
@@ -958,11 +983,20 @@ int main() {
                 
                 // Check for pause
                 if (input.pause) {
-                    if (!pauseMenu()) {
+                    stopThemeSound(); // Dừng nhạc khi pause
+                    useMainBuffer(); // Chuyển về màn hình chính để hiện Menu
+                    bool continueGame = pauseMenu(); // Hiện menu (dùng cout)
+                    
+                    if (!continueGame) {
                         state = MENU;
                         break;
                     }
+                    
+                    // Nếu chơi tiếp
+                    playThemeSound(); // Tiếp tục nhạc
+                    useGameBuffer(); // Chuyển lại màn hình Buffer để chơi tiếp
                     system("cls");
+                    lastFrameTime = GetTickCount(); // Reset thời gian để tránh giật
                     continue; // Vẽ lại màn hình sau khi unpause
                 }
 
@@ -987,21 +1021,6 @@ int main() {
                 // KHÔNG DÙNG Sleep(10) ở đây nữa!
                 // Nếu muốn giảm tải CPU một chút, dùng Sleep(1)
                 Sleep(1); 
-
-                if (input.pause) {
-                    useMainBuffer(); // <--- 1. Chuyển về màn hình chính để hiện Menu
-                    bool continueGame = pauseMenu(); // Hiện menu (dùng cout)
-                    
-                    if (!continueGame) {
-                        state = MENU;
-                        break;
-                    }
-                    
-                    // Nếu chơi tiếp
-                    useGameBuffer(); // <--- 2. Chuyển lại màn hình Buffer để chơi tiếp
-                    lastFrameTime = GetTickCount(); // Reset thời gian để tránh giật
-                    continue; 
-                }
             }
 
             if (state == PLAYING && gameOver) {
