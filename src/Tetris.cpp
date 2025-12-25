@@ -12,6 +12,9 @@
 #include "LPiece.h"
 #include "Bag.h"
 
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
 using namespace std;
 
 bool isKeyPressed(int vKey) {
@@ -60,6 +63,48 @@ string blockChar(char c) {
         case '.': return ColorBlock('.', gray);//Ghost piece
         default: return " ";
     }
+}
+
+// ==========================
+// === HỆ THỐNG ÂM THANH  ===
+// ==========================
+void initAudio() {
+    mciSendStringA("close all", NULL, 0, NULL);
+
+    mciSendStringA("open \"sound/theme-sound.mp3\" type mpegvideo alias theme", NULL, 0, NULL);
+    mciSendStringA("open \"sound/move.mp3\" type mpegvideo alias move", NULL, 0, NULL);
+    mciSendStringA("open \"sound/level-up.mp3\" type mpegvideo alias levelup", NULL, 0, NULL);
+    mciSendStringA("open \"sound/stage-clear.mp3\" type mpegvideo alias clear", NULL, 0, NULL);
+    mciSendStringA("open \"sound/game-over.mp3\" type mpegvideo alias gameover", NULL, 0, NULL);
+}
+
+void playThemeSound() {
+    mciSendStringA("play theme repeat", NULL, 0, NULL);
+}
+
+void stopThemeSound() {
+    mciSendStringA("stop theme", NULL, 0, NULL);
+    mciSendStringA("seek theme to start", NULL, 0, NULL);
+}
+
+void playMoveSound() {
+    mciSendStringA("play move from 0", NULL, 0, NULL);
+}
+
+void playStageClearSound() {
+    mciSendStringA("play clear from 0", NULL, 0, NULL);
+}
+
+void playLevelUpSound() {
+    mciSendStringA("play levelup from 0", NULL, 0, NULL);
+}
+
+void playGameOverSound() {
+    mciSendStringA("play gameover from 0", NULL, 0, NULL);
+}
+
+void closeAudio() {
+    mciSendStringA("close all", NULL, 0, NULL);
 }
 
 // ====================
@@ -461,9 +506,19 @@ void removeLine() {
 // LOCK PIECE
 // ====================
 void lockPiece() {
+    int oldLevel = level;
+    int oldLines = linesCleared;
+
     block2Board();
     removeLine();
     // Level giữ nguyên, không tăng tự động
+
+    // [SOUND] Phát âm thanh phù hợp
+    if (level > oldLevel) {
+        playLevelUpSound(); // Ưu tiên âm thanh lên cấp
+    } else if (linesCleared > oldLines) {
+        playStageClearSound(); // Âm thanh xóa dòng
+    }
 
     delete currentPiece;
     currentPiece = nextPiece;
@@ -809,19 +864,35 @@ void updateGame(InputState& in) {
 
     boardDelBlock();
 
+    bool playMoveSound_flag = false;
+
     if (in.rotate) {
         currentPiece->rotate(x, y, board);
         lockStart = 0;
+        playMoveSound_flag = true;
     }
 
-    if (in.left && canMove(-1, 0)) { x--; lockStart = 0; }
-    if (in.right && canMove(1, 0)) { x++; lockStart = 0; }
+    if (in.left && canMove(-1, 0)) { 
+        x--; 
+        lockStart = 0;
+        playMoveSound_flag = true;
+    }
+    if (in.right && canMove(1, 0)) { 
+        x++; 
+        lockStart = 0;
+        playMoveSound_flag = true;
+    }
 
     if (in.hardDrop) {
         score += 10;
         while (canMove(0, 1)) y++;
         lockPiece();
         return;
+    }
+
+    // [SOUND] Phát âm thanh di chuyển (không phát khi soft drop)
+    if (playMoveSound_flag && !in.softDrop) {
+        playMoveSound();
     }
 
     DWORD fallDelay = static_cast<DWORD>(gravityByLevel(level));
@@ -849,6 +920,9 @@ int main() {
     // Initialize double buffering
     initDoubleBuffer();
 
+    // [SOUND] Khởi tạo hệ thống âm thanh
+    initAudio();
+
     GameState state = MENU;
 
     while (state != EXIT) {
@@ -868,6 +942,9 @@ int main() {
         else if (state == PLAYING) {
             system("cls");
             resetGame();
+
+            // [SOUND] Bắt đầu nhạc nền
+            playThemeSound();
 
             // Trước vòng lặp
             DWORD lastFrameTime = GetTickCount(); 
@@ -928,6 +1005,10 @@ int main() {
             }
 
             if (state == PLAYING && gameOver) {
+            // [SOUND] Xử lý Game Over
+            stopThemeSound();   // Tắt nhạc nền
+            playGameOverSound(); // Phát nhạc thua
+
             useMainBuffer(); // <--- QUAN TRỌNG: Chuyển về màn hình chính để hiện chữ Game Over
             bool replay = gameOverMenu();
             if (!replay) state = MENU;
