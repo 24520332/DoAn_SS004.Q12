@@ -12,7 +12,14 @@
 #include "LPiece.h"
 #include "Bag.h"
 
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
 using namespace std;
+
+bool isKeyPressed(int vKey) {
+    return (GetAsyncKeyState(vKey) & 0x8000) != 0;
+}
 
 char board[H][W] = {};
 
@@ -32,16 +39,18 @@ enum Color {
     gray = 8
 };
 
+
+
 void setColor(int color) {
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), static_cast<WORD>(color));
 }
 
-char ColorBlock(char /* c */, int color) {
+string ColorBlock(char /* c */, int color) {
     setColor(color);
-    return '\xDB';
+    return "\u2588"; // Unicode full block █
 }
 
-char blockChar(char c) {
+string blockChar(char c) {
     switch(c) {
         case 'I': return ColorBlock(c, cyan);
         case 'O': return ColorBlock(c, yellow);
@@ -52,8 +61,55 @@ char blockChar(char c) {
         case 'L': return ColorBlock(c, orange);
         case '#': return ColorBlock(c, gray);
         case '.': return ColorBlock('.', gray);//Ghost piece
-        default: return ' ';
+        default: return " ";
     }
+}
+
+// ==========================
+// === HỆ THỐNG ÂM THANH  ===
+// ==========================
+void initAudio() {
+    mciSendStringA("close all", NULL, 0, NULL);
+
+    mciSendStringA("open \"..\\\\sound\\\\theme-sound.mp3\" type mpegvideo alias theme", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\move.mp3\" type mpegvideo alias move", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\level-up.mp3\" type mpegvideo alias levelup", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\stage-clear.mp3\" type mpegvideo alias clear", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\game-over.mp3\" type mpegvideo alias gameover", NULL, 0, NULL);
+    mciSendStringA("open \"..\\\\sound\\\\lock.mp3\" type mpegvideo alias lock", NULL, 0, NULL);
+}
+
+void playThemeSound() {
+    mciSendStringA("play theme repeat", NULL, 0, NULL);
+}
+
+void stopThemeSound() {
+    mciSendStringA("stop theme", NULL, 0, NULL);
+    mciSendStringA("seek theme to start", NULL, 0, NULL);
+}
+
+void playMoveSound() {
+    mciSendStringA("play move from 0", NULL, 0, NULL);
+}
+
+void playStageClearSound() {
+    mciSendStringA("play clear from 0", NULL, 0, NULL);
+}
+
+void playLevelUpSound() {
+    mciSendStringA("play levelup from 0", NULL, 0, NULL);
+}
+
+void playGameOverSound() {
+    mciSendStringA("play gameover from 0", NULL, 0, NULL);
+}
+
+void playLockSound() {
+    mciSendStringA("play lock from 0", NULL, 0, NULL);
+}
+
+void closeAudio() {
+    mciSendStringA("close all", NULL, 0, NULL);
 }
 
 // ====================
@@ -62,6 +118,7 @@ char blockChar(char c) {
 
 int linesCleared = 0;
 int level = 1;
+int startingLevel = 1; // Level mà người chơi chọn khi bắt đầu
 int x = 5, y = 0;
 Piece* currentPiece = nullptr;
 Piece* nextPiece = nullptr;
@@ -76,10 +133,66 @@ void clearGhostPiece();
 
 //Preview forward declaration
 void drawNextPiece();
+void initDoubleBuffer();
+void swapBuffer();
 
 void gotoxy(int gotoX, int gotoY) {
     COORD c = { static_cast<SHORT>(gotoX), static_cast<SHORT>(gotoY) };
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
+}
+
+// Double buffering
+HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+HANDLE hBuffer[2];
+int currentBuffer = 0;
+
+HANDLE hMain = GetStdHandle(STD_OUTPUT_HANDLE); 
+
+// Hàm quay về màn hình chính (Dùng cho Menu)
+void useMainBuffer() {
+    SetConsoleActiveScreenBuffer(hMain);
+}
+
+// Hàm quay về màn hình game (Dùng khi chơi)
+void useGameBuffer() {
+    SetConsoleActiveScreenBuffer(hBuffer[currentBuffer]);
+}
+
+void initDoubleBuffer() {
+    hBuffer[0] = CreateConsoleScreenBuffer(
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        CONSOLE_TEXTMODE_BUFFER,
+        NULL
+    );
+    hBuffer[1] = CreateConsoleScreenBuffer(
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        CONSOLE_TEXTMODE_BUFFER,
+        NULL
+    );
+    
+    // Hide cursor in both buffers
+    CONSOLE_CURSOR_INFO cursorInfo;
+    cursorInfo.dwSize = 1;
+    cursorInfo.bVisible = FALSE;
+    SetConsoleCursorInfo(hBuffer[0], &cursorInfo);
+    SetConsoleCursorInfo(hBuffer[1], &cursorInfo);
+}
+
+void swapBuffer() {
+    SetConsoleActiveScreenBuffer(hBuffer[currentBuffer]);
+    currentBuffer = 1 - currentBuffer;
+}
+
+void writeToBuffer(const char* text, int x, int y, int color) {
+    COORD coord = { static_cast<SHORT>(x), static_cast<SHORT>(y) };
+    SetConsoleCursorPosition(hBuffer[currentBuffer], coord);
+    SetConsoleTextAttribute(hBuffer[currentBuffer], static_cast<WORD>(color));
+    DWORD written;
+    WriteConsoleA(hBuffer[currentBuffer], text, static_cast<DWORD>(strlen(text)), &written, NULL);
 }
 
 Piece* createRandomPiece() {
@@ -102,14 +215,22 @@ Piece* createRandomPiece() {
 DWORD lastFall = 0;
 DWORD lockStart = 0;
 const int LOCK_DELAY = 500;
+DWORD lastInputTime = 0;
+const int INPUT_DELAY = 100; // DAS delay
+const int KEY_REPEAT_RATE = 30; // ARR
 
-// Gravity table (ms per cell)
+// Gravity table (ms per cell) - 5 cấp độ
 int gravityByLevel(int lvl) {
     static int table[] = {
-        1000, 793, 617, 473, 355, 262, 190,
-        135, 94, 64, 43, 28, 18, 11, 7
+        1000,  // Level 1: Rất chậm (1 giây)
+        700,   // Level 2: Chậm 
+        450,   // Level 3: Trung bình
+        250,   // Level 4: Nhanh
+        100    // Level 5: Rất nhanh
     };
-    return table[min(lvl - 1, 14)];
+    if (lvl < 1) lvl = 1;
+    if (lvl > 5) lvl = 5;
+    return table[lvl - 1];
 }
 
 // ====================
@@ -121,22 +242,83 @@ struct InputState {
     bool softDrop = false;
     bool hardDrop = false;
     bool rotate = false;
+    bool pause = false;
 };
 
 void readInput(InputState& in) {
     in = {};
+    static DWORD lastLeftTime = 0;
+    static DWORD lastRightTime = 0;
+    static DWORD lastRotateTime = 0;
+    static DWORD lastSpaceTime = 0;
+    static DWORD lastPauseTime = 0;
+    static DWORD lastSoftDropTime = 0;
+    
+    DWORD now = GetTickCount();
+    const int DAS_DELAY = 150; // Delay Auto Shift: Độ trễ khi giữ phím (ms)
+    const int ARR_RATE = 30;   // Auto Repeat Rate: Tốc độ lặp (ms)
+    const int SPACE_DELAY = 500; // Delay cho phím space (ms) - tăng lên 500ms
+    const int PAUSE_DELAY = 800; // Delay cho phím pause (ms) - tăng lên 800ms
+    const int SOFT_DROP_DELAY = 50; // Delay cho soft drop (ms)
 
-    while (kbhit()) {
-        int c = getch();
-        if (c == 224) c = getch();
-
-        if (c == 75 || c == 'a' || c == 'A') in.left = true;
-        if (c == 77 || c == 'd' || c == 'D') in.right = true;
-        if (c == 80 || c == 's' || c == 'S') in.softDrop = true;
-        if (c == 72 || c == 'w' || c == 'W') in.rotate = true;
-        if (c == ' ') in.hardDrop = true;
-        if (c == 'q' || c == 'Q') gameOver = true;
+    // Xử lý sang TRÁI
+    if (isKeyPressed(VK_LEFT) || isKeyPressed('A')) {
+        if (lastLeftTime == 0 || now - lastLeftTime > DAS_DELAY) {
+            in.left = true;
+            // Nếu đây là lần nhấn đầu (lastLeftTime == 0), set thời gian hiện tại
+            // Nếu đang giữ (DAS), cập nhật thời gian để kích hoạt ARR
+            lastLeftTime = (lastLeftTime == 0) ? now : now - (DAS_DELAY - ARR_RATE);
+        }
+    } else {
+        lastLeftTime = 0; // Nhả phím thì reset
     }
+
+    // Xử lý sang PHẢI
+    if (isKeyPressed(VK_RIGHT) || isKeyPressed('D')) {
+        if (lastRightTime == 0 || now - lastRightTime > DAS_DELAY) {
+            in.right = true;
+            lastRightTime = (lastRightTime == 0) ? now : now - (DAS_DELAY - ARR_RATE);
+        }
+    } else {
+        lastRightTime = 0;
+    }
+
+    // Xử lý XOAY (Cần chặn spam xoay quá nhanh)
+    if (isKeyPressed(VK_UP) || isKeyPressed('W')) {
+        if (now - lastRotateTime > 200) { // Giới hạn xoay mỗi 200ms
+            in.rotate = true;
+            lastRotateTime = now;
+        }
+    }
+
+    // Soft drop với delay
+    if (isKeyPressed(VK_DOWN) || isKeyPressed('S')) {
+        if (now - lastSoftDropTime > SOFT_DROP_DELAY) {
+            in.softDrop = true;
+            lastSoftDropTime = now;
+        }
+    }
+    
+    // Hard drop với delay
+    if (isKeyPressed(VK_SPACE)) {
+        if (now - lastSpaceTime > SPACE_DELAY) {
+            in.hardDrop = true;
+            lastSpaceTime = now;
+        }
+    }
+    
+    // Pause với delay
+    if (isKeyPressed('P')) {
+        if (now - lastPauseTime > PAUSE_DELAY) {
+            in.pause = true;
+            lastPauseTime = now;
+        }
+    }
+    
+    if (isKeyPressed('L')) gameOver = true;
+    
+    // Xóa bộ đệm bàn phím thừa để tránh xung đột với getch() ở menu
+    while(kbhit()) getch(); 
 }
 
 // ----------------------
@@ -183,17 +365,96 @@ void initBoard() {
 }
 
 void draw() {
-    gotoxy(0, 0);
-    for (int i = 0; i < H; i++, cout << '\n')
+    // 1. Đưa con trỏ về đầu buffer (chỉ làm 1 lần)
+    SetConsoleCursorPosition(hBuffer[currentBuffer], {0, 0});
+
+    // 2. Vẽ từng dòng (Line-by-line)
+    for (int i = 0; i < H; i++) {
+        // Đặt con trỏ ở đầu mỗi dòng
+        COORD linePos = {0, static_cast<SHORT>(i)};
+        SetConsoleCursorPosition(hBuffer[currentBuffer], linePos);
+
+        int currentColor = -1; // Để check đổi màu
+
         for (int j = 0; j < W; j++) {
-            cout << blockChar(board[i][j]) << blockChar(board[i][j]);
-            setColor(white);
+            char c = board[i][j];
+            int color = white;
+            
+            // Xác định màu sắc
+            switch(c) {
+                case 'I': color = cyan; break;
+                case 'O': color = yellow; break;
+                case 'T': color = purple; break;
+                case 'S': color = green; break;
+                case 'Z': color = red; break;
+                case 'J': color = blue; break;
+                case 'L': color = orange; break;
+                case '#': color = gray; break;
+                case '.': color = gray; break; // Ghost piece
+                default: color = white; break;
+            }
+
+            // Chỉ gọi API đổi màu khi màu thực sự thay đổi (Tối ưu)
+            if (color != currentColor) {
+                SetConsoleTextAttribute(hBuffer[currentBuffer], static_cast<WORD>(color));
+                currentColor = color;
+            }
+
+            // QUAN TRỌNG: Xác định chuỗi cần vẽ
+            // Luôn vẽ chuỗi độ dài = 2 để đảm bảo khung hình vuông vức
+            const char* blockStr;
+            if (c == ' ') {
+                blockStr = "  "; // 2 khoảng trắng
+            } else {
+                // 2 khối đặc (UTF-8 bytes cho ký tự █ lặp lại 2 lần)
+                // Mã Hex của █ trong UTF-8 là E2 96 88
+                blockStr = "\xE2\x96\x88\xE2\x96\x88"; 
+            }
+
+            // Vẽ trực tiếp chuỗi ra console
+            DWORD written;
+            WriteConsoleA(hBuffer[currentBuffer], blockStr, strlen(blockStr), &written, NULL);
         }
-    cout << "Level: " << level
-     << " | Lines: " << linesCleared 
-     <<" | Score: " << score << "\n";
-    cout << "Press P to pause the game" << "\n";
-    drawNextPiece();//Vẽ khối sẽ xuất hiện tiếp theo
+    }
+
+    // 3. Vẽ lại các thông tin phụ (Score, Level...)
+    // Phần này vẽ đè lên dưới đáy board nên dùng writeToBuffer như cũ cho tiện
+    char line[100];
+    sprintf_s(line, "Level: %d | Lines: %d | Score: %ld       ", level, linesCleared, score);
+    writeToBuffer(line, 0, H, white);
+    writeToBuffer("Press P to pause       ", 0, H + 1, white);
+
+    // Vẽ Next Piece (Giữ nguyên logic cũ của bạn hoặc tối ưu sau)
+    if (nextPiece) {
+        int startX = W * 2 + 4;
+        int startY = 2;
+        writeToBuffer("NEXT: ", startX, startY, white);
+        
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                char c = nextPiece->getCell(i, j);
+                if (c != ' ') {
+                    int color = white;
+                    switch(c) { // Lấy màu cho Next Piece
+                        case 'I': color = cyan; break;
+                        case 'O': color = yellow; break;
+                        case 'T': color = purple; break;
+                        case 'S': color = green; break;
+                        case 'Z': color = red; break;
+                        case 'J': color = blue; break;
+                        case 'L': color = orange; break;
+                    }
+                    // Vẽ block next piece (2 ký tự)
+                    writeToBuffer("\xE2\x96\x88\xE2\x96\x88", startX + j * 2, startY + i + 1, color);
+                } else {
+                    writeToBuffer("  ", startX + j * 2, startY + i + 1, white);
+                }
+            }
+        }
+    }
+
+    // 4. Swap buffer để hiển thị
+    swapBuffer();
 }
 
 bool canMove(int dx, int dy) {
@@ -266,9 +527,23 @@ void removeLine() {
 // LOCK PIECE
 // ====================
 void lockPiece() {
+    int oldLevel = level;
+    int oldLines = linesCleared;
+
     block2Board();
+    
+    // [SOUND] Âm thanh đập đáy
+    playLockSound();
+    
     removeLine();
-    level = linesCleared / 10 + 1;
+    // Level giữ nguyên, không tăng tự động
+
+    // [SOUND] Phát âm thanh phù hợp
+    if (level > oldLevel) {
+        playLevelUpSound(); // Ưu tiên âm thanh lên cấp
+    } else if (linesCleared > oldLines) {
+        playStageClearSound(); // Âm thanh xóa dòng
+    }
 
     delete currentPiece;
     currentPiece = nextPiece;
@@ -332,61 +607,175 @@ void clearGhostPiece() {
 // ----------------------
 // --- PREVIEW PIECE ---
 // ----------------------
-//Vẽ ô Next Piece
+//Vẽ ô Next Piece (integrated into draw function)
 void drawNextPiece() {
-    if (!nextPiece) return;
-    
-    int startX = W * 2 + 4;
-    int startY = 2;
-
-    gotoxy(startX, startY);
-    cout << "NEXT: ";
-
-    for (int i = 0; i < 4; i++) {
-        gotoxy(startX, startY + i + 1);
-        for (int j = 0; j < 4; j++) {
-            char c = nextPiece->getCell(i, j);
-            if (c != ' ')
-                cout << blockChar(c) << blockChar(c);
-            else
-                cout << "  ";
-        }
-    }
+    // This is now handled in the main draw() function for better performance
 }
 
 // ----------------------
 // --- MENU SYSTEM ---
 // ----------------------
-enum GameState { MENU, PLAYING, HOWTOPLAY, EXIT };
+enum GameState { MENU, PLAYING, HOWTOPLAY, SELECTLEVEL, EXIT };
+
+void selectLevel(GameState& state) {
+    system("cls");
+    setColor(cyan);
+    cout << "\n\n";
+    cout << "         ╔═══════════════════════════════════════════════════════╗\n";
+    cout << "         ║                    CHON CAP DO                        ║\n";
+    cout << "         ╚═══════════════════════════════════════════════════════╝\n";
+    cout << "\n";
+    setColor(white);
+    cout << "                  ╔═══════════════════════════════════╗\n";
+    cout << "                  ║  Cap do hien tai: ";
+    setColor(yellow);
+    cout << "Level " << startingLevel << "      ";
+    setColor(white);
+    cout << "║\n";
+    cout << "                  ╠═══════════════════════════════════╣\n";
+    cout << "                  ║  Toc do roi: ";
+    if (startingLevel == 1) {
+        setColor(green);
+        cout << "RAT CHAM       ";
+    } else if (startingLevel == 2) {
+        setColor(green);
+        cout << "CHAM           ";
+    } else if (startingLevel == 3) {
+        setColor(yellow);
+        cout << "TRUNG BINH     ";
+    } else if (startingLevel == 4) {
+        setColor(orange);
+        cout << "NHANH          ";
+    } else {
+        setColor(red);
+        cout << "RAT NHANH      ";
+    }
+    setColor(white);
+    cout << "║\n";
+    cout << "                  ╚═══════════════════════════════════╝\n";
+    cout << "\n";
+    setColor(gray);
+    cout << "                 ⚠ Toc do se giu nguyen trong suot game\n\n";
+    setColor(white);
+    cout << "                  ╔═══════════════════════════════════╗\n";
+    setColor(green);
+    cout << "                  ║  [+] ▲ Tang cap do               ║\n";
+    setColor(red);
+    cout << "                  ║  [-] ▼ Giam cap do               ║\n";
+    setColor(yellow);
+    cout << "                  ║  [ENTER] ▶ Bat dau choi          ║\n";
+    setColor(cyan);
+    cout << "                  ║  [X] ◄ Quay lai Menu             ║\n";
+    setColor(white);
+    cout << "                  ╚═══════════════════════════════════╝\n";
+    cout << "\n";
+    setColor(gray);
+    cout << "                         (Cap do: 1-5)\n";
+    setColor(white);
+
+    while (true) {
+        char c = static_cast<char>(getch());
+        if (c == '+' || c == '=') {
+            if (startingLevel < 5) {
+                startingLevel++;
+                selectLevel(state);
+                return;
+            }
+        }
+        else if (c == '-' || c == '_') {
+            if (startingLevel > 1) {
+                startingLevel--;
+                selectLevel(state);
+                return;
+            }
+        }
+        else if (c == '\r' || c == '\n') {
+            state = PLAYING;
+            return;
+        }
+        else if (c == 'x' || c == 'X') {
+            state = MENU;
+            return;
+        }
+    }
+}
 
 void showMenu(GameState& state) {
     system("cls");
     setColor(cyan);
-    cout << "======== TETRIS ========\n\n";
+    cout << "\n\n";
+    cout << "         ╔═══════════════════════════════════════════════════════╗\n";
+    cout << "         ║                                                       ║\n";
+    setColor(yellow);
+    cout << "         ║      ████████╗███████╗████████╗██████╗ ██╗███████╗    ║\n";
+    cout << "         ║      ╚══██╔══╝██╔════╝╚══██╔══╝██╔══██╗██║██╔════╝    ║\n";
+    cout << "         ║         ██║   █████╗     ██║   ██████╔╝██║███████╗    ║\n";
+    cout << "         ║         ██║   ██╔══╝     ██║   ██╔══██╗██║╚════██║    ║\n";
+    cout << "         ║         ██║   ███████╗   ██║   ██║  ██║██║███████║    ║\n";
+    cout << "         ║         ╚═╝   ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚══════╝    ║\n";
+    setColor(cyan);
+    cout << "         ║                                                       ║\n";
+    cout << "         ╚═══════════════════════════════════════════════════════╝\n";
+    cout << "\n";
     setColor(white);
-    cout << "1. Start Game\n";
-    cout << "2. How to Play\n";
-    cout << "3. Exit\n\n";
+    cout << "                  ╔═══════════════════════════════════╗\n";
+    cout << "                  ║         MENU CHINH               ║\n";
+    cout << "                  ╠═══════════════════════════════════╣\n";
+    setColor(green);
+    cout << "                  ║  [1] ▶  Bat dau choi             ║\n";
+    setColor(yellow);
+    cout << "                  ║  [2] ⚙  Chon cap do (Level: " << startingLevel << ")   ║\n";
+    setColor(blue);
+    cout << "                  ║  [3] ❓  Huong dan choi           ║\n";
+    setColor(red);
+    cout << "                  ║  [4] ✖  Thoat                    ║\n";
+    setColor(white);
+    cout << "                  ╚═══════════════════════════════════╝\n";
+    cout << "\n";
+    setColor(gray);
+    cout << "                     Nhap lua chon cua ban...\n";
+    setColor(white);
 
     char c = static_cast<char>(getch());
     if (c == '1') state = PLAYING;
-    else if (c == '2') state = HOWTOPLAY;
-    else if (c == '3') state = EXIT;
+    else if (c == '2') state = SELECTLEVEL;
+    else if (c == '3') state = HOWTOPLAY;
+    else if (c == '4') state = EXIT;
 }
 
 void showHowToPlay(GameState& state) {
     system("cls");
-    setColor(yellow);
-    cout << "====== HOW TO PLAY ======\n\n";
+    setColor(cyan);
+    cout << "\n\n";
+    cout << "         ╔═══════════════════════════════════════════════════════╗\n";
+    cout << "         ║                    HUONG DAN CHOI                     ║\n";
+    cout << "         ╚═══════════════════════════════════════════════════════╝\n";
+    cout << "\n";
     setColor(white);
-    cout << "Arrow Keys / WASD: Move and rotate\n";
-    cout << "W / Up Arrow: Rotate\n";
-    cout << "S / Down Arrow: Soft drop\n";
-    cout << "Space: Hard drop\n";
-    cout << "P: Pause the game\n";
-    cout << "Q: Quit\n";
-
-    cout << "\nPress X to return to Menu\n";
+    cout << "                  ╔═══════════════════════════════════╗\n";
+    cout << "                  ║       DIEU KHIEN                 ║\n";
+    cout << "                  ╠═══════════════════════════════════╣\n";
+    setColor(yellow);
+    cout << "                  ║  ↑ / W     : Xoay khoi           ║\n";
+    setColor(cyan);
+    cout << "                  ║  ← / A     : Di chuyen trai      ║\n";
+    cout << "                  ║  → / D     : Di chuyen phai      ║\n";
+    setColor(green);
+    cout << "                  ║  ↓ / S     : Roi cham            ║\n";
+    setColor(purple);
+    cout << "                  ║  SPACE     : Roi nhanh           ║\n";
+    setColor(orange);
+    cout << "                  ║  P         : Tam dung            ║\n";
+    setColor(red);
+    cout << "                  ║  L         : Thoat               ║\n";
+    setColor(white);
+    cout << "                  ╚═══════════════════════════════════╝\n";
+    cout << "\n";
+    setColor(cyan);
+    cout << "                  ╔═══════════════════════════════════╗\n";
+    cout << "                  ║  [X] ◄ Quay lai Menu             ║\n";
+    cout << "                  ╚═══════════════════════════════════╝\n";
+    setColor(white);
     while (true) {
         char c = static_cast<char>(getch());
         if (c == 'x' || c == 'X') {
@@ -399,10 +788,19 @@ void showHowToPlay(GameState& state) {
 bool pauseMenu() {
     system("cls");
     setColor(yellow);
-    cout << "=== GAME PAUSED ===\n\n";
+    cout << "\n\n\n";
+    cout << "         ╔═══════════════════════════════════════════════════════╗\n";
+    cout << "         ║                   GAME PAUSED ⏸                       ║\n";
+    cout << "         ╚═══════════════════════════════════════════════════════╝\n";
+    cout << "\n";
     setColor(white);
-    cout << "P - Continue Game\n";
-    cout << "X - Return to Menu\n";
+    cout << "                  ╔═══════════════════════════════════╗\n";
+    setColor(green);
+    cout << "                  ║  [P] ▶ Tiep tuc choi             ║\n";
+    setColor(red);
+    cout << "                  ║  [X] ◄ Quay lai Menu             ║\n";
+    setColor(white);
+    cout << "                  ╚═══════════════════════════════════╝\n";
 
     while (true) {
         char c = static_cast<char>(getch());
@@ -414,13 +812,41 @@ bool pauseMenu() {
 bool gameOverMenu() {
     gotoxy(0, H + 4);
     setColor(red);
-    cout << "\n*** GAME OVER ***\n";
+    cout << "\n";
+    cout << "         ╔═══════════════════════════════════════════════════════╗\n";
+    cout << "         ║                    GAME OVER ☠                        ║\n";
+    cout << "         ╚═══════════════════════════════════════════════════════╝\n";
+    cout << "\n";
     setColor(white);
-    cout << "Level: " << level
-         << " | Lines: " << linesCleared
-         << " | Score: " << score << "\n";
-    cout << "R - Play Again\n";
-    cout << "X - Return to Menu\n";
+    cout << "                  ╔═══════════════════════════════════╗\n";
+    setColor(yellow);
+    cout << "                  ║  Level: " << level;
+    if (level < 10) cout << "                          ";
+    else cout << "                         ";
+    cout << "║\n";
+    setColor(cyan);
+    cout << "                  ║  Lines: " << linesCleared;
+    if (linesCleared < 10) cout << "                         ";
+    else if (linesCleared < 100) cout << "                        ";
+    else cout << "                       ";
+    cout << "║\n";
+    setColor(green);
+    cout << "                  ║  Score: " << score;
+    if (score < 10) cout << "                         ";
+    else if (score < 100) cout << "                        ";
+    else if (score < 1000) cout << "                       ";
+    else if (score < 10000) cout << "                      ";
+    else if (score < 100000) cout << "                     ";
+    else cout << "                    ";
+    cout << "║\n";
+    setColor(white);
+    cout << "                  ╠═══════════════════════════════════╣\n";
+    setColor(green);
+    cout << "                  ║  [R] ↻ Choi lai                  ║\n";
+    setColor(red);
+    cout << "                  ║  [X] ◄ Quay lai Menu             ║\n";
+    setColor(white);
+    cout << "                  ╚═══════════════════════════════════╝\n";
 
     while (true) {
         char c = static_cast<char>(getch());
@@ -431,7 +857,7 @@ bool gameOverMenu() {
 
 void resetGame() {
     linesCleared = 0;
-    level = 1;
+    level = startingLevel; // Bắt đầu từ level đã chọn
     score = 0;
     x = 5;
     y = 0;
@@ -463,19 +889,35 @@ void updateGame(InputState& in) {
 
     boardDelBlock();
 
+    bool playMoveSound_flag = false;
+
     if (in.rotate) {
         currentPiece->rotate(x, y, board);
         lockStart = 0;
+        playMoveSound_flag = true;
     }
 
-    if (in.left && canMove(-1, 0)) { x--; lockStart = 0; }
-    if (in.right && canMove(1, 0)) { x++; lockStart = 0; }
+    if (in.left && canMove(-1, 0)) { 
+        x--; 
+        lockStart = 0;
+        playMoveSound_flag = true;
+    }
+    if (in.right && canMove(1, 0)) { 
+        x++; 
+        lockStart = 0;
+        playMoveSound_flag = true;
+    }
 
     if (in.hardDrop) {
         score += 10;
         while (canMove(0, 1)) y++;
         lockPiece();
         return;
+    }
+
+    // [SOUND] Phát âm thanh di chuyển (không phát khi soft drop)
+    if (playMoveSound_flag && !in.softDrop) {
+        playMoveSound();
     }
 
     DWORD fallDelay = static_cast<DWORD>(gravityByLevel(level));
@@ -495,8 +937,16 @@ void updateGame(InputState& in) {
 }
 
 int main() {
+    // Thiết lập console để hiển thị ký tự UTF-8 đúng
+    SetConsoleOutputCP(65001); // UTF-8
     srand(static_cast<unsigned int>(time(0)));
     hideCursor();
+    
+    // Initialize double buffering
+    initDoubleBuffer();
+
+    // [SOUND] Khởi tạo hệ thống âm thanh
+    initAudio();
 
     GameState state = MENU;
 
@@ -504,6 +954,10 @@ int main() {
 
         if (state == MENU) {
             showMenu(state);
+        }
+
+        else if (state == SELECTLEVEL) {
+            selectLevel(state);
         }
 
         else if (state == HOWTOPLAY) {
@@ -514,41 +968,75 @@ int main() {
             system("cls");
             resetGame();
 
+            // [SOUND] Bắt đầu nhạc nền
+            playThemeSound();
+
+            // Trước vòng lặp
+            DWORD lastFrameTime = GetTickCount(); 
+
             while (!gameOver) {
+                DWORD now = GetTickCount();
+                
+                // 1. Đọc input (Async - cực nhanh)
                 InputState input;
                 readInput(input);
                 
                 // Check for pause
-                if (input.hardDrop == false && input.softDrop == false && 
-                    input.left == false && input.right == false && input.rotate == false) {
-                    // Additional check for 'P' key
-                    if (kbhit()) {
-                        int c = getch();
-                        if (c == 'p' || c == 'P') {
-                            if (!pauseMenu()) {
-                                state = MENU;
-                                break;
-                            }
-                            system("cls");
-                        }
+                if (input.pause) {
+                    stopThemeSound(); // Dừng nhạc khi pause
+                    useMainBuffer(); // Chuyển về màn hình chính để hiện Menu
+                    bool continueGame = pauseMenu(); // Hiện menu (dùng cout)
+                    
+                    if (!continueGame) {
+                        state = MENU;
+                        break;
                     }
+                    
+                    // Nếu chơi tiếp
+                    playThemeSound(); // Tiếp tục nhạc
+                    useGameBuffer(); // Chuyển lại màn hình Buffer để chơi tiếp
+                    system("cls");
+                    lastFrameTime = GetTickCount(); // Reset thời gian để tránh giật
+                    continue; // Vẽ lại màn hình sau khi unpause
                 }
 
+                // 2. Update logic game
                 updateGame(input);
-                drawGhostPiece();
-                draw();
-                clearGhostPiece();
-                Sleep(16);
+                
+                // 3. Render
+                // Chỉ render khi có thay đổi hoặc giới hạn FPS (ví dụ 60FPS ~ 16ms)
+                // Để mượt nhất, bạn có thể render liên tục nhưng sẽ tốn CPU.
+                // Tốt nhất là render mỗi 16ms:
+                if (now - lastFrameTime >= 16) {
+                    boardDelBlock();     // Xóa vị trí cũ
+                    drawGhostPiece();    // Tính toán ghost
+                    block2Board();       // Ghi vị trí mới
+                    
+                    draw();              // Vẽ ra buffer
+                    
+                    clearGhostPiece();   // Dọn dẹp board logic
+                    lastFrameTime = now;
+                }
+                
+                // KHÔNG DÙNG Sleep(10) ở đây nữa!
+                // Nếu muốn giảm tải CPU một chút, dùng Sleep(1)
+                Sleep(1); 
             }
 
             if (state == PLAYING && gameOver) {
-                bool replay = gameOverMenu();
-                if (!replay) state = MENU;
-            }
+            // [SOUND] Xử lý Game Over
+            stopThemeSound();   // Tắt nhạc nền
+            playGameOverSound(); // Phát nhạc thua
+
+            useMainBuffer(); // <--- QUAN TRỌNG: Chuyển về màn hình chính để hiện chữ Game Over
+            bool replay = gameOverMenu();
+            if (!replay) state = MENU;
+                }
         }
     }
-
+    
     if (currentPiece) delete currentPiece;
     if (nextPiece) delete nextPiece;
     return 0;
+
 }
