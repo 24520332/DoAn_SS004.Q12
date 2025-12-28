@@ -1,88 +1,80 @@
-# [TRÒ CHƠI TETRIS /DỰ ÁN CỦA NHÓM : TREEZE]
+# 🎮 Tetris Game - C++ Console Project
 
+![Banner](https://img.shields.io/badge/Project-Tetris-blue?style=for-the-badge&logo=c%2B%2B)
+![Course](https://img.shields.io/badge/Course-SS004.Q12-green?style=for-the-badge)
+![UIT](https://img.shields.io/badge/School-UIT-orange?style=for-the-badge)
 
-> **Đồ án môn học:** Kỹ Năng Nghề Nghiệp  
-> **Mã lớp:** SS004.Q12  
-> **Giảng viên hướng dẫn:** Nguyễn Văn Toàn
-
----
+> Đồ án môn học **Kỹ năng nghề nghiệp (SS004.Q12)** - Trường Đại học Công nghệ Thông tin (UIT), ĐHQG-HCM.
 
 ## 📖 Giới thiệu (Introduction)
 
-Dự án xây dựng con game mang tên Tetris. Quyết tâm xây dựng 1 con game độc đáo, thú vị và nổi bật hơn so với các con game Tetris khác.
+Dự án này là phiên bản tái hiện lại trò chơi **Tetris** kinh điển, được xây dựng bằng ngôn ngữ **C++**. Trò chơi được phát triển bởi nhóm **Freeze** với mục tiêu áp dụng các kiến thức lập trình hướng đối tượng, quản lý bộ nhớ và kỹ năng làm việc nhóm.
 
-## 👥 Thành viên nhóm (Team Members)
+Trò chơi bao gồm đầy đủ các cơ chế cốt lõi của Tetris hiện đại như: **Super Rotation System (SRS)**, **Bag-7 Randomizer**, và hệ thống âm thanh sống động.
 
-Dưới đây là danh sách 5 thành viên tham gia phát triển dự án:
+## ✨ Tính năng nổi bật (Features)
 
-| STT | Họ và Tên | MSSV | Vai trò (Role) | Liên kết GitHub |
-|:---:|:---:|:---:|:---|:---:|
-| 1 | **Võ Minh Đức** | 24520332 | Leader, Backend Dev | [@user1](https://github.com/user1) |
-| 2 | Trần Minh Đức | 24520330 | Frontend Dev, UI/UX | [@user2](https://github.com/user2) |
-| 3 | Bùi Công Định | 24520303 | Database, Tester | [@user3](https://github.com/user3) |
-| 4 | Nguyễn Thị Mỹ Duyên | 24520408 | Document, Support | [@user4](https://github.com/user4) |
-| 5 | Vũ Minh Quân | 24521460 | Presenter, Researcher | [@user5](https://github.com/user5) |
+* 👾 **Gameplay cổ điển:** Xếp gạch, xóa hàng và ghi điểm.
+* 🎒 **Cơ chế Bag-7:** Đảm bảo 7 loại khối (I, J, L, O, S, T, Z) xuất hiện đều đặn, tránh việc quá lâu không có khối I.
+* 🔄 **Xoay khối thông minh:** Xử lý va chạm khi xoay gần tường hoặc gần các khối khác (Wall Kick cơ bản).
+* 🎵 **Âm thanh & Nhạc nền:** Tích hợp BGM và hiệu ứng âm thanh (SFX) khi di chuyển, xoay, ăn điểm.
+* 👀 **Next Piece:** Xem trước khối tiếp theo để tính toán chiến thuật.
+* 🚀 **Hard Drop & Soft Drop:** Thả chậm hoặc thả ngay lập tức để tiết kiệm thời gian.
+* 📊 **Hệ thống tính điểm:** Tăng điểm dựa trên số dòng xóa được cùng lúc (Single, Double, Triple, Tetris).
 
----
 
-## 🚀 Tính năng chính (Key Features)
 
-Liệt kê các chức năng nổi bật của sản phẩm:
+## 🎮 Hướng dẫn điều khiển (Controls)
 
-- [ ] **Tính năng 1:** Mô tả tính năng 
-- [ ] **Tính năng 2:** Mô tả tính năng 
-- [ ] **Tính năng 3:** Mô tả tính năng.
-- [ ] **Tính năng 4:** Mô tả tính năng.
+| Phím | Chức năng |
+| :---: | :--- |
+| **⬅️ / ➡️** | Di chuyển khối sang Trái / Phải |
+| **⬆️** | Xoay khối 90 độ |
+| **⬇️** | Thả chậm (Soft Drop) - Tăng tốc rơi |
+| **Space** | Thả ngay lập tức (Hard Drop) |
+| **Esc** | Tạm dừng / Thoát game |
 
----
+## 🛠️ Cài đặt & Chạy chương trình (Installation)
 
-## 🛠️ Công nghệ sử dụng (Tech Stack)
+### Yêu cầu hệ thống
+* Hệ điều hành: Windows
+* IDE: Visual Studio 2019/2022 (khuyến nghị) hoặc Dev-C++, CLion.
+* Ngôn ngữ: C++11 trở lên.
 
-Liệt kê các ngôn ngữ, thư viện, công cụ đã sử dụng:
+### Cách build từ Source Code
 
-* **Ngôn ngữ: C++** 
-* **Framework/Platform:** [Ví dụ: .NET WinForms, React, Django...]
-* **Cơ sở dữ liệu:** [Ví dụ: SQL Server, Firebase, MySQL...]
-* **Công cụ khác:** [Ví dụ: Visual Studio 2022, Git, Trello...]
-
----
-
-## 📸 Hình ảnh Demo (Screenshots)
-
-| Trang chủ | Trang chức năng |
-|:---:|:---:|
-| ![Screenshot 1](https://via.placeholder.com/400x300) | ![Screenshot 2](https://via.placeholder.com/400x300) |
-
----
-
-## ⚙️ Cài đặt & Hướng dẫn sử dụng (Installation)
-
-Hướng dẫn người khác cách chạy dự án của bạn:
-
-1.  **Clone dự án về máy:**
+1.  **Clone repository này về máy:**
     ```bash
-    git clone [https://github.com/username/ten-du-an.git](https://github.com/username/ten-du-an.git)
+    git clone [https://github.com/24520332/DoAn_SS004.Q12.git](https://github.com/24520332/DoAn_SS004.Q12.git)
     ```
-2.  **Cài đặt cơ sở dữ liệu (nếu có):**
-    * Chạy file script `data.sql` trong thư mục `database`.
-    * Cấu hình chuỗi kết nối trong file `app.config` hoặc `.env`.
-3.  **Mở dự án:**
-    * Mở bằng [Visual Studio / VS Code].
-    * Nhấn `F5` để chạy chương trình.
+2.  **Mở dự án:**
+    * Khởi động Visual Studio.
+    * Chọn `Open a project or solution`.
+    * Tìm đến file `.sln` trong thư mục vừa clone.
+3.  **Cài đặt tài nguyên:**
+    * Đảm bảo các file âm thanh và hình ảnh nằm đúng thư mục `Resources` hoặc cùng cấp với file `.exe` sau khi build.
+4.  **Build & Run:**
+    * Nhấn `F5` hoặc nút **Local Windows Debugger** để chạy game.
+
+## 👥 Thành viên nhóm Freeze (Team Members)
+
+| STT | Họ và tên | MSSV | Vai trò chính |
+|:---:|:---|:---:|:---|
+| 1 | **Võ Minh Đức** | 24520332 | 👑 Leader, Core Logic, Game Loop |
+| 2 | **Trần Minh Đức** | 24520330 | 💻 UI Design, Report (LaTeX) |
+| 3 | **Nguyễn Thị Mỹ Duyên** | 24520408 | 📋 Project Manager (Trello), Collision Logic |
+| 4 | **Bùi Công Định** | 24520303 | ⚙️ Gameplay Logic, Bug Fixing |
+| 5 | **Vũ Minh Quân** | 24521460 | 🧮 Algorithm, Audio System |
+
+## 📚 Tài liệu tham khảo (References)
+
+* [Tetris Wiki - Tetris Guideline](https://tetris.wiki/Guideline)
+* [Hard Drop Wiki - Super Rotation System](https://harddrop.com/wiki/SRS)
+* [C++ Reference](https://en.cppreference.com/)
+
+## 🤝 Lời cảm ơn (Acknowledgments)
+
+Xin gửi lời cảm ơn chân thành đến **Th.S Nguyễn Văn Toàn** đã hướng dẫn và hỗ trợ nhóm trong suốt quá trình thực hiện đồ án môn học Kỹ năng nghề nghiệp.
 
 ---
-
-## 🤝 Đóng góp (Contributing)
-
-Nếu bạn muốn đóng góp cho dự án này, vui lòng:
-1.  Fork dự án.
-2.  Tạo branch mới (`git checkout -b feature/AmazingFeature`).
-3.  Commit thay đổi (`git commit -m 'Add some AmazingFeature'`).
-4.  Push lên branch (`git push origin feature/AmazingFeature`).
-5.  Tạo Pull Request.
-
----
-
-## 📄 Bản quyền (License)
-
-Dự án này được thực hiện cho mục đích học tập tại trường [Tên Trường Đại Học].
+Made with ❤️ by **Team Freeze**.
