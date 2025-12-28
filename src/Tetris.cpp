@@ -418,11 +418,70 @@ void draw() {
     }
 
     // 3. Vẽ lại các thông tin phụ (Score, Level...)
-    // Phần này vẽ đè lên dưới đáy board nên dùng writeToBuffer như cũ cho tiện
     char line[100];
-    sprintf_s(line, "Level: %d | Lines: %d | Score: %ld       ", level, linesCleared, score);
-    writeToBuffer(line, 0, H, white);
-    writeToBuffer("Press P to pause       ", 0, H + 1, white);
+    
+    // Vẽ khung thông tin bên phải (gọn hơn)
+    int frameX = W * 2 + 2;
+    int frameY = 8;
+    int frameWidth = 16;
+    
+    // Khung thông tin
+    writeToBuffer("\xE2\x94\x8C", frameX, frameY, cyan); // ┌
+    for(int i = 0; i < frameWidth - 2; i++) {
+        writeToBuffer("\xE2\x94\x80", frameX + 1 + i, frameY, cyan); // ─
+    }
+    writeToBuffer("\xE2\x94\x90", frameX + frameWidth - 1, frameY, cyan); // ┐
+    
+    int row = frameY + 1;
+    writeToBuffer("\xE2\x94\x82", frameX, row, cyan); // │
+    sprintf_s(line, " LV: %-8d ", level);
+    writeToBuffer(line, frameX + 1, row, yellow);
+    writeToBuffer("\xE2\x94\x82", frameX + frameWidth - 1, row, cyan); // │
+    
+    row++;
+    writeToBuffer("\xE2\x94\x82", frameX, row, cyan); // │
+    sprintf_s(line, " SC: %-8ld ", score);
+    writeToBuffer(line, frameX + 1, row, green);
+    writeToBuffer("\xE2\x94\x82", frameX + frameWidth - 1, row, cyan); // │
+    
+    row++;
+    writeToBuffer("\xE2\x94\x82", frameX, row, cyan); // │
+    sprintf_s(line, " LN: %-8d ", linesCleared);
+    writeToBuffer(line, frameX + 1, row, purple);
+    writeToBuffer("\xE2\x94\x82", frameX + frameWidth - 1, row, cyan); // │
+    
+    row++;
+    writeToBuffer("\xE2\x94\x94", frameX, row, cyan); // └
+    for(int i = 0; i < frameWidth - 2; i++) {
+        writeToBuffer("\xE2\x94\x80", frameX + 1 + i, row, cyan); // ─
+    }
+    writeToBuffer("\xE2\x94\x98", frameX + frameWidth - 1, row, cyan); // ┘
+
+    // Khung điều khiển (gọn hơn)
+    int controlFrameY = row + 1;
+    
+    writeToBuffer("\xE2\x94\x8C", frameX, controlFrameY, yellow); // ┌
+    for(int i = 0; i < frameWidth - 2; i++) {
+        writeToBuffer("\xE2\x94\x80", frameX + 1 + i, controlFrameY, yellow); // ─
+    }
+    writeToBuffer("\xE2\x94\x90", frameX + frameWidth - 1, controlFrameY, yellow); // ┐
+    
+    row = controlFrameY + 1;
+    writeToBuffer("\xE2\x94\x82", frameX, row, yellow); // │
+    writeToBuffer(" P: Pause    ", frameX + 1, row, green);
+    writeToBuffer("\xE2\x94\x82", frameX + frameWidth - 1, row, yellow); // │
+    
+    row++;
+    writeToBuffer("\xE2\x94\x82", frameX, row, yellow); // │
+    writeToBuffer(" L: Quit     ", frameX + 1, row, red);
+    writeToBuffer("\xE2\x94\x82", frameX + frameWidth - 1, row, yellow); // │
+    
+    row++;
+    writeToBuffer("\xE2\x94\x94", frameX, row, yellow); // └
+    for(int i = 0; i < frameWidth - 2; i++) {
+        writeToBuffer("\xE2\x94\x80", frameX + 1 + i, row, yellow); // ─
+    }
+    writeToBuffer("\xE2\x94\x98", frameX + frameWidth - 1, row, yellow); // ┘
 
     // Vẽ Next Piece (Giữ nguyên logic cũ của bạn hoặc tối ưu sau)
     if (nextPiece) {
